@@ -18,11 +18,12 @@ function parseStatements(sql: string) {
 }
 
 async function main() {
-  const file = join(process.cwd(), "prisma/migrations/20240101000000_init/migration.sql");
+  const target = process.argv[2] || "prisma/migrations/20240101000000_init/migration.sql";
+  const file = join(process.cwd(), target);
   const sql = readFileSync(file, "utf8");
   const statements = parseStatements(sql);
 
-  console.log(`Applying ${statements.length} SQL statements...`);
+  console.log(`Applying ${statements.length} SQL statements from ${target}...`);
 
   for (let index = 0; index < statements.length; index += 1) {
     const statement = statements[index];

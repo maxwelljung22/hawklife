@@ -149,6 +149,7 @@ model User {
   notifications     Notification[]
   resources         Resource[]
   attendanceRecords AttendanceRecord[]
+  charterApplications CharterApplication[]
 
   @@index([email])
   @@index([role])
@@ -311,6 +312,38 @@ model Application {
 
   @@unique([clubId, applicantId])
   @@index([clubId, status])
+}
+
+// ─── CHARTER APPLICATION ─────────────────────────────────────────────────────
+
+model CharterApplication {
+  id                  String            @id @default(cuid())
+  applicantId         String
+  clubName            String
+  category            ClubCategory
+  missionStatement    String            @db.Text
+  founderName         String
+  coFounders          Json
+  leadershipRoles     Json
+  whyExist            String            @db.Text
+  uniqueValue         String            @db.Text
+  plannedEvents       Json
+  meetingFrequency    String
+  expectedMemberCount Int
+  advisorName         String?
+  advisorEmail        String?
+  status              ApplicationStatus @default(SUBMITTED)
+  reviewNotes         String?           @db.Text
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  submittedAt         DateTime          @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId, createdAt])
+  @@index([status, submittedAt])
 }
 
 // ─── POLL ─────────────────────────────────────────────────────────────────────

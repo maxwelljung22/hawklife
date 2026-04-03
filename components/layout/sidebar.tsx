@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House, Compass, CalendarDays, Megaphone,
-  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut,
+  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
@@ -27,12 +27,14 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Announcements", href: "/announcements", icon: <Megaphone       className="h-4 w-4" /> },
   { label: "Voting",        href: "/voting",         icon: <Vote            className="h-4 w-4" /> },
   { label: "Applications",  href: "/applications",  icon: <FileStack       className="h-4 w-4" /> },
+  { label: "New Charter",   href: "/charter/apply", icon: <Rocket          className="h-4 w-4" /> },
   { label: "What's New",    href: "/changelog",     icon: <Sparkles        className="h-4 w-4" /> },
   { label: "NHS Hours",     href: "/nhs",           icon: <GraduationCap   className="h-4 w-4" /> },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
   { label: "Admin Panel", href: "/admin", icon: <ShieldCheck className="h-4 w-4" /> },
+  { label: "Charters", href: "/admin/charters", icon: <Rocket className="h-4 w-4" /> },
 ];
 
 interface SidebarProps {

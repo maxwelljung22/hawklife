@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED = ["/dashboard", "/clubs", "/calendar", "/announcements", "/voting", "/applications", "/changelog", "/nhs", "/profile"];
+const PROTECTED = ["/dashboard", "/clubs", "/calendar", "/announcements", "/voting", "/applications", "/changelog", "/nhs", "/profile", "/charter"];
 const ADMIN_ONLY = ["/admin", "/api/admin"];
 
 export default auth((req: any) => {
