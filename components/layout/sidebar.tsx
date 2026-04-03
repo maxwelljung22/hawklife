@@ -65,7 +65,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Logo */}
       <div className="relative z-10 px-6 py-6 border-b" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
-        <BrandLogo dark />
+        <BrandLogo />
       </div>
 
       {/* Navigation */}

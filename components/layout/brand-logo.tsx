@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 interface BrandLogoProps {
   href?: string;
   compact?: boolean;
-  dark?: boolean;
+  tone?: "default" | "inverse";
   className?: string;
 }
 
-export function BrandLogo({ href = "/dashboard", compact = false, dark = false, className }: BrandLogoProps) {
+export function BrandLogo({ href = "/dashboard", compact = false, tone = "default", className }: BrandLogoProps) {
+  const inverse = tone === "inverse";
+
   return (
     <Link href={href} className={cn("inline-flex items-center gap-3", className)} aria-label="PrepLife home">
       <div
@@ -27,13 +29,13 @@ export function BrandLogo({ href = "/dashboard", compact = false, dark = false, 
       </div>
       <div className="min-w-0">
         <div className="truncate text-[22px] font-medium tracking-[-0.06em]" style={{ fontFamily: "Satoshi, var(--font-body)" }}>
-          <span className={cn(dark ? "text-white/95" : "text-neutral-950")}>Prep</span>
+          <span className={cn(inverse ? "text-white/95" : "text-neutral-950 dark:text-white/95")}>Prep</span>
           <span className="brand-gradient ml-0.5 bg-clip-text text-transparent">
             Life
           </span>
         </div>
         {!compact ? (
-          <p className={cn("text-[10px] font-semibold uppercase tracking-[0.18em]", dark ? "text-white/45" : "text-neutral-500")}>
+          <p className={cn("text-[10px] font-semibold uppercase tracking-[0.18em]", inverse ? "text-white/45" : "text-neutral-500 dark:text-white/45")}>
             St. Joseph&apos;s Preparatory
           </p>
         ) : null}
