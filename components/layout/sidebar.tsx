@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House, Compass, CalendarDays, Megaphone,
-  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket,
+  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket, X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
@@ -39,11 +39,19 @@ const ADMIN_ITEMS: NavItem[] = [
   { label: "Charters", href: "/admin/charters", icon: <Rocket className="h-4 w-4" /> },
 ];
 
-interface SidebarProps {
+export interface ShellUser {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null; role: UserRole };
 }
 
-export function Sidebar({ user }: SidebarProps) {
+function SidebarNavContent({
+  user,
+  onNavigate,
+  mobile = false,
+}: {
+  user: ShellUser["user"];
+  onNavigate?: () => void;
+  mobile?: boolean;
+}) {
   const pathname = usePathname();
 
   const isActive = (item: NavItem) => {
@@ -52,7 +60,7 @@ export function Sidebar({ user }: SidebarProps) {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-72 sidebar-bg flex flex-col border-r" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
+    <>
       {/* Ambient glow */}
       <div
         className="pointer-events-none absolute inset-0 opacity-100"
@@ -64,8 +72,17 @@ export function Sidebar({ user }: SidebarProps) {
       />
 
       {/* Logo */}
-      <div className="relative z-10 px-6 py-6 border-b" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
+      <div className="relative z-10 flex items-center justify-between border-b px-6 py-6" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
         <BrandLogo />
+        {mobile ? (
+          <button
+            onClick={onNavigate}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-card/90 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+            aria-label="Close navigation"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       {/* Navigation */}
@@ -77,6 +94,7 @@ export function Sidebar({ user }: SidebarProps) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "relative flex items-center gap-3 px-3 py-3 rounded-2xl text-[13.5px] font-medium transition-all duration-150 border",
               isActive(item)
@@ -124,6 +142,7 @@ export function Sidebar({ user }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-3 px-3 py-3 rounded-2xl text-[13.5px] font-medium transition-all duration-150 border",
                   isActive(item)
@@ -178,14 +197,53 @@ export function Sidebar({ user }: SidebarProps) {
             </div>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              onNavigate?.();
+              signOut({ callbackUrl: "/auth/signin" });
+            }}
+            className={cn("transition-opacity", mobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
             title="Sign out"
           >
             <LogOut className="h-3.5 w-3.5 transition-colors" style={{ color: "hsl(var(--shell-sidebar-muted))" }} />
           </button>
         </div>
       </div>
+    </>
+  );
+}
+
+export function Sidebar({ user }: ShellUser) {
+  return (
+    <aside className="sidebar-bg fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r lg:flex" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
+      <SidebarNavContent user={user} />
     </aside>
+  );
+}
+
+export function MobileSidebarSheet({
+  user,
+  open,
+  onClose,
+}: {
+  user: ShellUser["user"];
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div className={cn("fixed inset-0 z-[70] lg:hidden", open ? "pointer-events-auto" : "pointer-events-none")}>
+      <div
+        className={cn("absolute inset-0 bg-black/45 transition-opacity duration-200", open ? "opacity-100" : "opacity-0")}
+        onClick={onClose}
+      />
+      <aside
+        className={cn(
+          "sidebar-bg absolute inset-y-0 left-0 flex w-[min(86vw,22rem)] flex-col border-r transition-transform duration-300 ease-out",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+        style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}
+      >
+        <SidebarNavContent user={user} onNavigate={onClose} mobile />
+      </aside>
+    </div>
   );
 }
