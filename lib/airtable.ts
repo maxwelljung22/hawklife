@@ -49,8 +49,12 @@ function computeProgress(total: number, required: number): number {
   return Math.min(100, Math.round((total / required) * 100));
 }
 
+function hasUsableAirtableKey(key?: string) {
+  return Boolean(key && !key.includes("xxxxxxxx"));
+}
+
 async function fetchFromAirtable(): Promise<NhsRecord[]> {
-  if (!AIRTABLE_KEY) {
+  if (!hasUsableAirtableKey(AIRTABLE_KEY)) {
     console.warn("[NHS] AIRTABLE_API_KEY not set — skipping fetch");
     return [];
   }
@@ -70,6 +74,10 @@ async function fetchFromAirtable(): Promise<NhsRecord[]> {
 
     if (!res.ok) {
       const text = await res.text();
+      if (res.status === 401 || res.status === 403) {
+        console.warn(`[NHS] Airtable auth failed (${res.status}). Falling back to cached NHS data.`);
+        return [];
+      }
       throw new Error(`Airtable error ${res.status}: ${text}`);
     }
 
@@ -201,6 +209,12 @@ export async function getNhsRecordForUser(email: string, name?: string | null): 
 export async function syncNhsNow(): Promise<{ synced: number; error?: string }> {
   try {
     const records = await fetchFromAirtable();
+    if (records.length === 0) {
+      return {
+        synced: 0,
+        error: "Airtable credentials are missing or invalid. Update AIRTABLE_API_KEY to enable live sync.",
+      };
+    }
     await writeCache(records);
     return { synced: records.length };
   } catch (err: any) {

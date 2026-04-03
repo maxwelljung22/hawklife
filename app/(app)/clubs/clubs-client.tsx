@@ -10,6 +10,7 @@ import { joinClub, leaveClub } from "./actions";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole } from "@prisma/client";
+import { canAccessAdmin } from "@/lib/roles";
 
 const CATEGORIES = ["All", "STEM", "Humanities", "Arts", "Business", "Service", "Sports", "Faith"];
 const COMMITMENTS = ["Any", "Low", "Medium", "High"];
@@ -100,7 +101,7 @@ export function ClubsClient({ clubs: initialClubs, userId, role }: Props) {
             {initialClubs.length} organizations — find your community at Prep.
           </p>
         </div>
-        {role === "ADMIN" && (
+        {canAccessAdmin(role) && (
           <Link
             href="/admin/clubs/new"
             className="flex items-center gap-2 px-4 py-2.5 bg-crimson text-white rounded-xl text-[13.5px] font-medium hover:bg-crimson/90 transition-colors shadow-lg shadow-crimson/25 hover:shadow-crimson/35 hover:-translate-y-0.5 transition-all duration-150"

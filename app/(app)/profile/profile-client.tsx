@@ -10,6 +10,7 @@ import { updateProfile } from "./actions";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 
 export function ProfileClient({ user, memberships }: any) {
   const [editing, setEditing] = useState(false);
@@ -53,9 +54,9 @@ export function ProfileClient({ user, memberships }: any) {
                 <div className="flex items-center gap-2 mt-2">
                   <span className={cn(
                     "text-[11px] font-bold uppercase tracking-[.06em] px-2.5 py-1 rounded-full",
-                    user.role === "ADMIN" ? "bg-crimson/10 text-crimson" : "bg-muted text-muted-foreground"
+                    getRoleBadgeClass(user.role)
                   )}>
-                    {user.role.toLowerCase()}
+                    {getRoleLabel(user.role)}
                   </span>
                   {user.grade && (
                     <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">

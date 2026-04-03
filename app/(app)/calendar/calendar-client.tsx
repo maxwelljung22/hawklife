@@ -18,8 +18,8 @@ interface CalEvent {
   description: string | null;
   location: string | null;
   type: string;
-  startTime: string;
-  endTime: string;
+  startTime: string | Date;
+  endTime: string | Date;
   isAllDay: boolean;
   club: { name: string; emoji: string; slug: string; gradientFrom: string; gradientTo: string } | null;
 }
@@ -33,9 +33,27 @@ const TYPE_COLORS: Record<string, string> = {
   OTHER:       "bg-muted-foreground/60",
 };
 
+function getEventDate(value: string | Date) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const parsed = parseISO(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  const fallback = new Date(value);
+  if (!Number.isNaN(fallback.getTime())) return fallback;
+
+  return null;
+}
+
 export function CalendarClient({ events }: { events: CalEvent[] }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
+  const validEvents = useMemo(
+    () => events.filter((evt) => getEventDate(evt.startTime)),
+    [events]
+  );
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -47,20 +65,25 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalEvent[]> = {};
-    for (const evt of events) {
-      const key = format(parseISO(evt.startTime), "yyyy-MM-dd");
+    for (const evt of validEvents) {
+      const start = getEventDate(evt.startTime);
+      if (!start) continue;
+      const key = format(start, "yyyy-MM-dd");
       if (!map[key]) map[key] = [];
       map[key].push(evt);
     }
     return map;
-  }, [events]);
+  }, [validEvents]);
 
   const selectedDayEvents = selectedDay
     ? eventsByDate[format(selectedDay, "yyyy-MM-dd")] ?? []
     : [];
 
-  const upcomingEvents = events
-    .filter((e) => new Date(e.startTime) >= new Date())
+  const upcomingEvents = validEvents
+    .filter((e) => {
+      const start = getEventDate(e.startTime);
+      return start ? start >= new Date() : false;
+    })
     .slice(0, 8);
 
   return (
@@ -219,6 +242,7 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
 function EventRow({ evt, index, compact = false }: { evt: CalEvent; index: number; compact?: boolean }) {
   const colorClass = TYPE_COLORS[evt.type] ?? "bg-muted-foreground/60";
   const slug = evt.club?.slug;
+  const start = getEventDate(evt.startTime);
 
   const inner = (
     <motion.div
@@ -246,13 +270,13 @@ function EventRow({ evt, index, compact = false }: { evt: CalEvent; index: numbe
             )}
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {format(new Date(evt.startTime), "h:mm a")}
+              {start ? format(start, "h:mm a") : "Time TBD"}
             </span>
           </div>
         )}
         {compact && (
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            {format(new Date(evt.startTime), "MMM d · h:mm a")}
+            {start ? format(start, "MMM d · h:mm a") : "Date TBD"}
           </p>
         )}
       </div>

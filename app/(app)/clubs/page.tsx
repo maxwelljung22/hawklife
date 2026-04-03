@@ -49,12 +49,13 @@ async function getClubs(userId: string, params: SearchParams) {
 export default async function ClubsPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const clubs = await getClubs(session.user.id, searchParams);
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const clubs = await getClubs(session.user.id, resolvedSearchParams);
 
   return (
     <Suspense fallback={<ClubsSkeleton />}>

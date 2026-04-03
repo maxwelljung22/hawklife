@@ -24,6 +24,13 @@
     --input: 20 6% 90%;
     --ring: 0 68% 32%;
     --radius: 0.75rem;
+    --shell-sidebar: 30 18% 98%;
+    --shell-sidebar-foreground: 20 10% 16%;
+    --shell-sidebar-muted: 20 8% 42%;
+    --shell-sidebar-border: 28 14% 88%;
+    --shell-sidebar-hover: 0 0% 100%;
+    --shell-sidebar-active: 0 0% 100%;
+    --shell-topbar: 0 0% 100% / 0.78;
   }
 
   .dark {
@@ -46,6 +53,13 @@
     --border: 20 5% 16%;
     --input: 20 5% 16%;
     --ring: 0 55% 48%;
+    --shell-sidebar: 214 38% 10%;
+    --shell-sidebar-foreground: 30 18% 94%;
+    --shell-sidebar-muted: 215 14% 67%;
+    --shell-sidebar-border: 215 24% 18%;
+    --shell-sidebar-hover: 215 26% 15%;
+    --shell-sidebar-active: 215 28% 18%;
+    --shell-topbar: 215 28% 10% / 0.74;
   }
 
   * {
@@ -109,21 +123,16 @@
   }
 
   .topbar-glass {
-    background: rgba(248, 247, 244, 0.88);
+    background: hsla(var(--shell-topbar));
     backdrop-filter: blur(20px) saturate(1.5);
     -webkit-backdrop-filter: blur(20px) saturate(1.5);
   }
 
-  .dark .topbar-glass {
-    background: rgba(17, 17, 16, 0.88);
-  }
-
   .sidebar-bg {
-    background: #0C1824;
-  }
-
-  .dark .sidebar-bg {
-    background: #0A0A09;
+    background:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28%),
+      radial-gradient(circle at bottom left, hsl(var(--accent) / 0.10), transparent 30%),
+      hsl(var(--shell-sidebar));
   }
 
   .progress-crimson {

@@ -12,6 +12,7 @@ function ErrorContent() {
     DomainNotAllowed:   "Your email domain is not permitted. Only @sjprep.org and @sjprephawks.org accounts can sign in.",
     OAuthSignin:        "An error occurred during Google sign-in. Please try again.",
     OAuthCallback:      "Authentication callback failed. Please try again.",
+    AccessDenied:       "Your account signed in, but it does not currently have permission to finish authentication.",
     default:            "An authentication error occurred.",
   };
   const message = messages[error ?? ""] ?? messages.default;

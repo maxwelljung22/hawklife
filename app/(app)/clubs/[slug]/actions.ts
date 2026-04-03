@@ -4,13 +4,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function createPost(clubId: string, title: string, content: string) {
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };
 
   // Check user is a leader or admin
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin = canAccessAdmin(session.user.role);
   if (!isAdmin) {
     const membership = await prisma.membership.findUnique({
       where: { userId_clubId: { userId: session.user.id, clubId } },

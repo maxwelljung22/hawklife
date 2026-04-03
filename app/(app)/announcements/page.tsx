@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AnnouncementsClient } from "./announcements-client";
+import { canAccessAdmin } from "@/lib/roles";
 
 export const metadata = { title: "Announcements" };
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function AnnouncementsPage() {
       posts={posts as any}
       joinedClubIds={Array.from(joinedClubIds)}
       userId={session.user.id}
-      isAdmin={session.user.role === "ADMIN"}
+      isAdmin={canAccessAdmin(session.user.role)}
     />
   );
 }

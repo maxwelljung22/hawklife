@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import type { NhsRecord } from "@/lib/airtable";
+import { getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 
 type AdminTab = "overview" | "clubs" | "users" | "applications" | "changelog" | "nhs";
 
@@ -154,8 +155,8 @@ function OverviewTab({ clubs, users, applications, nhsRecords }: any) {
                   <p className="text-[13px] font-medium text-foreground truncate">{user.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <span className={cn("text-[10.5px] px-2 py-0.5 rounded-full font-medium", user.role === "ADMIN" ? "bg-crimson/10 text-crimson" : "bg-muted text-muted-foreground")}>
-                  {user.role.toLowerCase()}
+                <span className={cn("text-[10.5px] px-2 py-0.5 rounded-full font-medium", getRoleBadgeClass(user.role))}>
+                  {getRoleLabel(user.role)}
                 </span>
               </div>
             ))}
@@ -288,10 +289,12 @@ function UsersTab({ users }: { users: any[] }) {
                   disabled={pending}
                   className={cn(
                     "text-[11.5px] font-medium px-2 py-1 rounded-full border-none outline-none cursor-pointer",
-                    user.role === "ADMIN" ? "bg-crimson/10 text-crimson" : "bg-muted text-muted-foreground"
+                    getRoleBadgeClass(user.role)
                   )}
                 >
                   <option value="STUDENT">student</option>
+                  <option value="STUDENT_LEADER">student leader</option>
+                  <option value="FACULTY">faculty</option>
                   <option value="ADMIN">admin</option>
                 </select>
               </td>

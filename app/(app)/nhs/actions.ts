@@ -4,10 +4,11 @@
 import { auth } from "@/auth";
 import { syncNhsNow } from "@/lib/airtable";
 import { revalidatePath } from "next/cache";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function syncNhs() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || !canAccessAdmin(session.user.role)) {
     return { error: "Unauthorized" };
   }
 

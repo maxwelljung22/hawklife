@@ -35,8 +35,10 @@ export function NhsClient({ myRecord, allRecords, isAdmin, userEmail }: Props) {
     setSyncing(false);
     if (result?.error) {
       toast({ title: "Sync failed", description: result.error, variant: "destructive" });
-    } else {
+    } else if (result && "synced" in result) {
       toast({ title: `Synced ${result.synced} records ✓` });
+    } else {
+      toast({ title: "Sync finished" });
     }
   };
 

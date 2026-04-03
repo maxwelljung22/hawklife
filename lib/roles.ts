@@ -1,0 +1,52 @@
+import type { UserRole } from "@prisma/client";
+
+const DEFAULT_ROLE_BY_DOMAIN: Record<string, UserRole> = {
+  "sjprep.org": "FACULTY",
+  "sjprephawks.org": "STUDENT",
+};
+
+export function getDefaultRoleForEmail(email: string): UserRole | null {
+  const domain = email.toLowerCase().split("@")[1];
+  return domain ? (DEFAULT_ROLE_BY_DOMAIN[domain] ?? null) : null;
+}
+
+export function resolveRoleForUser(email: string, currentRole?: UserRole | null): UserRole | null {
+  if (currentRole === "ADMIN" || currentRole === "STUDENT_LEADER") return currentRole;
+  return getDefaultRoleForEmail(email);
+}
+
+export function canAccessAdmin(role?: UserRole | null) {
+  return role === "ADMIN";
+}
+
+export function canAccessFacultyTools(role?: UserRole | null) {
+  return role === "ADMIN" || role === "FACULTY";
+}
+
+export function getRoleLabel(role?: UserRole | null) {
+  switch (role) {
+    case "ADMIN":
+      return "Admin";
+    case "FACULTY":
+      return "Faculty";
+    case "STUDENT_LEADER":
+      return "Student Leader";
+    case "STUDENT":
+      return "Student";
+    default:
+      return "Member";
+  }
+}
+
+export function getRoleBadgeClass(role?: UserRole | null) {
+  switch (role) {
+    case "ADMIN":
+      return "bg-[rgba(139,26,26,.10)] text-[rgb(139,26,26)]";
+    case "FACULTY":
+      return "bg-[rgba(23,80,122,.10)] text-[rgb(23,80,122)] dark:bg-[rgba(116,196,255,.12)] dark:text-[rgb(161,220,255)]";
+    case "STUDENT_LEADER":
+      return "bg-[rgba(181,129,45,.12)] text-[rgb(138,92,19)] dark:bg-[rgba(218,173,74,.16)] dark:text-[rgb(241,208,127)]";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}

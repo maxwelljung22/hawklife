@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ClubDetailClient } from "./club-detail-client";
 
 interface Props {
-  params: { slug: string };
-  searchParams: { tab?: string };
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }
 
 async function getClubData(slug: string, userId: string) {
@@ -77,7 +77,8 @@ async function getClubData(slug: string, userId: string) {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const club = await prisma.club.findUnique({ where: { slug: params.slug }, select: { name: true, tagline: true } });
+  const { slug } = await params;
+  const club = await prisma.club.findUnique({ where: { slug }, select: { name: true, tagline: true } });
   return { title: club ? `${club.name} — Clubs` : "Club Not Found" };
 }
 
@@ -85,7 +86,9 @@ export default async function ClubDetailPage({ params, searchParams }: Props) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const data = await getClubData(params.slug, session.user.id);
+  const { slug } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const data = await getClubData(slug, session.user.id);
   if (!data) notFound();
 
   return (
@@ -93,7 +96,7 @@ export default async function ClubDetailPage({ params, searchParams }: Props) {
       {...data}
       userId={session.user.id}
       userRole={session.user.role}
-      defaultTab={searchParams.tab ?? "overview"}
+      defaultTab={resolvedSearchParams.tab ?? "overview"}
     />
   );
 }

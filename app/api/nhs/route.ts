@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllNhsRecords, getNhsRecordForUser } from "@/lib/airtable";
+import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const all = searchParams.get("all") === "true";
 
-  if (all && session.user.role !== "ADMIN") {
+  if (all && !canAccessFacultyTools(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || !canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

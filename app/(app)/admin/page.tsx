@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAllNhsRecords } from "@/lib/airtable";
 import { AdminClient } from "./admin-client";
+import { canAccessAdmin } from "@/lib/roles";
 
 export const metadata = { title: "Admin Panel" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard?error=unauthorized");
+  if (!session?.user || !canAccessAdmin(session.user.role)) redirect("/dashboard?error=unauthorized");
 
   const [clubs, users, applications, changelog, nhsRecords] = await Promise.all([
     prisma.club.findMany({

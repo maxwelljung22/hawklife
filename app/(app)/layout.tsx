@@ -10,9 +10,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar user={session.user} />
-      <div className="flex-1 flex flex-col ml-[256px] min-w-0">
+      <div className="flex-1 flex flex-col ml-[288px] min-w-0">
         <Topbar user={session.user} />
-        <main className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+        <main className="flex-1 p-6 lg:p-8 max-w-[1480px] w-full mx-auto">
           {children}
         </main>
       </div>

@@ -5,22 +5,19 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { getAuthEnv } from "@/lib/env";
 import type { UserRole } from "@prisma/client";
+import type { JWT } from "next-auth/jwt";
+import { getDefaultRoleForEmail, resolveRoleForUser } from "@/lib/roles";
 
 const authEnv = getAuthEnv();
 
-const DOMAIN_ROLES: Record<string, UserRole> = {
-  "sjprep.org": "ADMIN",
-  "sjprephawks.org": "STUDENT",
-};
-
-function getRoleFromEmail(email: string): UserRole | null {
-  const domain = email.split("@")[1]?.toLowerCase();
-  return domain ? (DOMAIN_ROLES[domain] ?? null) : null;
-}
-
 function isAllowedEmail(email: string): boolean {
-  return getRoleFromEmail(email) !== null;
+  return getDefaultRoleForEmail(email) !== null;
 }
+
+type AppToken = JWT & {
+  role?: UserRole;
+  userId?: string;
+};
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -39,24 +36,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
     async jwt({ token, user, trigger }) {
+      const appToken = token as AppToken;
+
       if (user?.email) {
-        const role = getRoleFromEmail(user.email);
-        token.role = role;
-        token.userId = user.id;
+        const existingUser = user.id
+          ? await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { role: true },
+            }).catch(() => null)
+          : null;
+        const role = resolveRoleForUser(user.email, existingUser?.role);
+        appToken.role = role ?? undefined;
+        appToken.userId = user.id;
       }
-      if (trigger === "update" && token.userId) {
+      if (trigger === "update" && appToken.userId) {
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.userId as string },
+          where: { id: appToken.userId },
           select: { role: true },
         });
-        if (dbUser) token.role = dbUser.role;
+        if (dbUser) appToken.role = dbUser.role;
       }
-      return token;
+      return appToken;
     },
     async session({ session, token }) {
+      const appToken = token as AppToken;
+
       if (session.user) {
-        session.user.id = token.userId as string;
-        session.user.role = token.role as UserRole;
+        session.user.id = appToken.userId as string;
+        session.user.role = appToken.role as UserRole;
       }
       return session;
     },
@@ -64,7 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   events: {
     async createUser({ user }) {
       if (!user.email || !user.id) return;
-      const role = getRoleFromEmail(user.email);
+      const role = getDefaultRoleForEmail(user.email);
       if (role) {
         await prisma.user.update({
           where: { id: user.id },
@@ -74,9 +81,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async signIn({ user }) {
       if (!user.id) return;
+      const existingUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      }).catch(() => null);
+      const role = user.email
+        ? resolveRoleForUser(user.email, existingUser?.role)
+        : existingUser?.role;
+
       await prisma.user.update({
         where: { id: user.id },
-        data: { lastSeenAt: new Date() },
+        data: {
+          lastSeenAt: new Date(),
+          ...(role ? { role } : {}),
+        },
       }).catch(() => {});
     },
   },
@@ -99,12 +117,5 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
     };
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    role?: UserRole;
-    userId?: string;
   }
 }

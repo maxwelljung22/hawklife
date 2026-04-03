@@ -4,6 +4,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function joinClub(clubId: string) {
   const session = await auth();
@@ -63,7 +64,7 @@ export async function createClub(data: {
   meetingRoom: string; requiresApp: boolean; tags: string[];
 }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") return { error: "Unauthorized" };
+  if (!session?.user || !canAccessAdmin(session.user.role)) return { error: "Unauthorized" };
 
   const slug = data.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 
@@ -101,7 +102,7 @@ export async function updateClub(clubId: string, data: Partial<{
   meetingRoom: string; requiresApp: boolean; tags: string[]; isActive: boolean;
 }>) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") return { error: "Unauthorized" };
+  if (!session?.user || !canAccessAdmin(session.user.role)) return { error: "Unauthorized" };
 
   try {
     await prisma.club.update({ where: { id: clubId }, data: data as any });
@@ -115,7 +116,7 @@ export async function updateClub(clubId: string, data: Partial<{
 
 export async function deleteClub(clubId: string) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") return { error: "Unauthorized" };
+  if (!session?.user || !canAccessAdmin(session.user.role)) return { error: "Unauthorized" };
 
   try {
     // Soft delete
