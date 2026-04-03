@@ -47,7 +47,7 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3 sm:items-center">
         <div className="h-8 w-8 rounded-lg bg-crimson/10 flex items-center justify-center">
           <ShieldCheck className="h-4 w-4 text-crimson" />
         </div>
@@ -186,12 +186,52 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
       <div className="flex justify-end">
         <Link
           href="/admin/clubs/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-crimson text-white rounded-xl text-[13.5px] font-medium hover:bg-crimson/90 transition-all shadow-md shadow-crimson/20"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-crimson px-4 py-2.5 text-[13.5px] font-medium text-white shadow-md shadow-crimson/20 transition-all hover:bg-crimson/90 sm:w-auto"
         >
           <Plus className="h-4 w-4" /> New Club
         </Link>
       </div>
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
+      <div className="space-y-3 md:hidden">
+        {clubs.map((club, i) => (
+          <motion.div key={club.id} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: i * 0.02 } }} className="rounded-2xl border border-border bg-card p-4 shadow-card">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">{club.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-semibold text-foreground">{club.name}</p>
+                    {club.tagline && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-muted-foreground">{club.tagline}</p>}
+                  </div>
+                  <span className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", club.isActive ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" : "text-muted-foreground bg-muted")}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", club.isActive ? "bg-emerald-500" : "bg-muted-foreground")} />
+                    {club.isActive ? "Active" : "Archived"}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                    {club.category.charAt(0) + club.category.slice(1).toLowerCase()}
+                  </span>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                    {club._count.memberships} members
+                  </span>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                    {club._count.posts} posts
+                  </span>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Link href={`/admin/clubs/${club.id}/edit`} className="flex-1 rounded-xl border border-border px-3 py-2 text-center text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
+                    Edit
+                  </Link>
+                  <button onClick={() => handleDelete(club.id, club.name)} disabled={pending} className="flex-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20">
+                    Archive
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      <div className="hidden bg-card border border-border rounded-2xl overflow-hidden shadow-card md:block">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
@@ -258,7 +298,52 @@ function UsersTab({ users }: { users: any[] }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
+    <>
+    <div className="space-y-3 md:hidden">
+      {users.map((user, i) => (
+        <motion.div key={user.id} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: i * 0.02 } }} className="rounded-2xl border border-border bg-card p-4 shadow-card">
+          <div className="flex items-start gap-3">
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarImage src={user.image} />
+              <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-navy to-crimson text-white">
+                {user.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) ?? "?"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[14px] font-semibold text-foreground">{user.name ?? "Unnamed"}</p>
+              <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-[11.5px]">
+                <div className="rounded-xl bg-muted px-3 py-2">
+                  <p className="text-muted-foreground">Clubs</p>
+                  <p className="mt-0.5 font-semibold text-foreground">{user._count.memberships}</p>
+                </div>
+                <div className="rounded-xl bg-muted px-3 py-2">
+                  <p className="text-muted-foreground">Joined</p>
+                  <p className="mt-0.5 font-semibold text-foreground">{formatRelativeTime(user.createdAt)}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <select
+                  defaultValue={user.role}
+                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                  disabled={pending}
+                  className={cn(
+                    "w-full cursor-pointer rounded-xl border-none px-3 py-2 text-[12px] font-medium outline-none",
+                    getRoleBadgeClass(user.role)
+                  )}
+                >
+                  <option value="STUDENT">student</option>
+                  <option value="STUDENT_LEADER">student leader</option>
+                  <option value="FACULTY">faculty</option>
+                  <option value="ADMIN">admin</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+    <div className="hidden bg-card border border-border rounded-2xl overflow-hidden shadow-card md:block">
       <table className="w-full">
         <thead>
           <tr className="border-b border-border">
@@ -306,6 +391,7 @@ function UsersTab({ users }: { users: any[] }) {
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 
@@ -335,7 +421,7 @@ function ApplicationsTab({ applications }: { applications: any[] }) {
     <div className="space-y-3">
       {applications.map((app, i) => (
         <motion.div key={app.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.04 } }} className="bg-card border border-border rounded-2xl p-5 shadow-card">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-3.5">
               <Avatar className="h-9 w-9 flex-shrink-0">
                 <AvatarImage src={app.applicant.image} />
@@ -352,18 +438,18 @@ function ApplicationsTab({ applications }: { applications: any[] }) {
                 <p className="text-[11px] text-muted-foreground/60 mt-1">{formatRelativeTime(app.createdAt)}</p>
               </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex flex-col gap-2 sm:flex-row md:flex-shrink-0">
               <button
                 onClick={() => handle(app.id, "ACCEPTED", app.applicant.name)}
                 disabled={pending}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[12.5px] font-medium hover:bg-emerald-100 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[12.5px] font-medium hover:bg-emerald-100 transition-colors"
               >
                 <CheckCircle className="h-3.5 w-3.5" /> Accept
               </button>
               <button
                 onClick={() => handle(app.id, "REJECTED", app.applicant.name)}
                 disabled={pending}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-[12.5px] font-medium hover:bg-red-100 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-[12.5px] font-medium hover:bg-red-100 transition-colors"
               >
                 <XCircle className="h-3.5 w-3.5" /> Decline
               </button>
@@ -412,9 +498,9 @@ function ChangelogTab({ entries }: { entries: any[] }) {
   return (
     <div className="space-y-6">
       {/* Create form */}
-      <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-6 shadow-card space-y-4">
+      <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-5 shadow-card space-y-4 sm:p-6">
         <p className="text-[13px] font-bold text-foreground">Post New Update</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-[12px] font-semibold text-muted-foreground">Title</label>
             <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="What changed?" className="w-full px-3.5 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border transition-all" />
@@ -430,12 +516,12 @@ function ChangelogTab({ entries }: { entries: any[] }) {
           <label className="text-[12px] font-semibold text-muted-foreground">Content (HTML supported)</label>
           <textarea required rows={4} value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} placeholder="<p>Describe the update…</p>" className="w-full px-3.5 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] resize-none outline-none focus:bg-card focus:border-border font-mono transition-all" />
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} className="accent-crimson" />
             <span className="text-[13px] text-muted-foreground">Feature on dashboard</span>
           </label>
-          <button type="submit" disabled={submitting || !form.title.trim()} className="px-5 py-2 bg-crimson text-white rounded-xl text-[13px] font-medium hover:bg-crimson/90 disabled:opacity-50 transition-all shadow-md shadow-crimson/20">
+          <button type="submit" disabled={submitting || !form.title.trim()} className="w-full rounded-xl bg-crimson px-5 py-2 text-[13px] font-medium text-white shadow-md shadow-crimson/20 transition-all hover:bg-crimson/90 disabled:opacity-50 sm:w-auto">
             {submitting ? "Publishing…" : "Publish"}
           </button>
         </div>
@@ -466,11 +552,30 @@ function ChangelogTab({ entries }: { entries: any[] }) {
 function NhsTab({ records }: { records: NhsRecord[] }) {
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+      <div className="flex flex-col gap-2 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px] font-bold text-foreground">NHS Hours — {records.length} students</p>
         <Link href="/nhs" className="text-[12.5px] text-crimson hover:opacity-70 transition-opacity">Open full view →</Link>
       </div>
-      <table className="w-full">
+      <div className="space-y-3 p-4 md:hidden">
+        {records.slice(0, 20).map((r) => (
+          <div key={r.id} className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[13.5px] font-medium text-foreground">{r.studentName}</p>
+                <p className="text-[12px] text-muted-foreground">{r.grade ? `Grade ${r.grade}` : "No grade listed"}</p>
+              </div>
+              <span className={cn("text-[11.5px] font-semibold capitalize", {
+                "text-emerald-600": r.status === "complete",
+                "text-blue-600": r.status === "on_track",
+                "text-amber-600": r.status === "behind",
+                "text-muted-foreground": r.status === "not_required",
+              })}>{r.status.replace("_", " ")}</span>
+            </div>
+            <p className="mt-3 font-display text-[16px] font-semibold text-foreground">{r.totalHours}/{r.requiredHours}</p>
+          </div>
+        ))}
+      </div>
+      <table className="hidden w-full md:table">
         <thead>
           <tr className="border-b border-border">
             {["Student", "Grade", "Hours", "Status"].map((h) => (

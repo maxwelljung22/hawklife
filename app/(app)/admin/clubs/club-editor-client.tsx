@@ -94,8 +94,8 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
-      <div className="rounded-[32px] border border-neutral-200 bg-[radial-gradient(circle_at_top_left,rgba(176,20,32,.06),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,255,255,0.96))] p-7 shadow-[0_24px_72px_rgba(15,23,42,0.08)] dark:border-neutral-800 dark:bg-[radial-gradient(circle_at_top_left,rgba(176,20,32,.12),transparent_32%),linear-gradient(180deg,rgba(10,10,10,0.98),rgba(10,10,10,0.95))] md:p-8">
+    <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
+      <div className="rounded-[32px] border border-neutral-200 bg-[radial-gradient(circle_at_top_left,rgba(176,20,32,.06),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,255,255,0.96))] p-5 shadow-[0_24px_72px_rgba(15,23,42,0.08)] dark:border-neutral-800 dark:bg-[radial-gradient(circle_at_top_left,rgba(176,20,32,.12),transparent_32%),linear-gradient(180deg,rgba(10,10,10,0.98),rgba(10,10,10,0.95))] sm:p-7 md:p-8">
         <Link href="/admin" className="mb-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Admin
         </Link>
@@ -126,10 +126,10 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
+      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr] lg:gap-8">
         <div className="space-y-7">
           <Section label="Basic Information">
-            <div className="grid grid-cols-[88px_1fr] gap-3">
+            <div className="grid gap-3 sm:grid-cols-[88px_1fr]">
               <Field label="Emoji">
                 <input value={form.emoji} onChange={set("emoji")} className="w-full rounded-2xl border border-border bg-muted px-3 py-3 text-center text-2xl outline-none transition-all focus:border-border focus:bg-card focus:ring-2 focus:ring-crimson/10" maxLength={2} />
               </Field>
@@ -148,7 +148,7 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
           </Section>
 
           <Section label="Classification">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category">
                 <select value={form.category} onChange={set("category")} className={selectCls}>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
@@ -172,7 +172,7 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
                   </span>
                 ))}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
@@ -247,8 +247,8 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
             </ul>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Link href="/admin" className="rounded-2xl border border-border px-5 py-3 text-[13.5px] font-medium text-muted-foreground hover:bg-muted transition-colors">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+            <Link href="/admin" className="rounded-2xl border border-border px-5 py-3 text-center text-[13.5px] font-medium text-muted-foreground hover:bg-muted transition-colors">
               Cancel
             </Link>
             <button

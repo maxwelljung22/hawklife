@@ -4,7 +4,7 @@
 import { useState, useOptimistic, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, SlidersHorizontal } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import Link from "next/link";
 import { joinClub, leaveClub } from "./actions";
 import { cn } from "@/lib/utils";
@@ -88,7 +88,7 @@ export function ClubsClient({ clubs: initialClubs, userId, role }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10.5px] font-bold tracking-[.10em] uppercase text-crimson mb-2">
             St. Joseph&apos;s Preparatory
@@ -104,7 +104,7 @@ export function ClubsClient({ clubs: initialClubs, userId, role }: Props) {
         {canAccessAdmin(role) && (
           <Link
             href="/admin/clubs/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-crimson text-white rounded-xl text-[13.5px] font-medium hover:bg-crimson/90 transition-colors shadow-lg shadow-crimson/25 hover:shadow-crimson/35 hover:-translate-y-0.5 transition-all duration-150"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-crimson px-4 py-2.5 text-[13.5px] font-medium text-white shadow-lg shadow-crimson/25 transition-all duration-150 hover:-translate-y-0.5 hover:bg-crimson/90 hover:shadow-crimson/35 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             New Club
@@ -115,7 +115,7 @@ export function ClubsClient({ clubs: initialClubs, userId, role }: Props) {
       {/* Search + Filters */}
       <div className="flex flex-col gap-3">
         {/* Search */}
-        <div className="relative max-w-md">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             value={q}
@@ -126,38 +126,45 @@ export function ClubsClient({ clubs: initialClubs, userId, role }: Props) {
         </div>
 
         {/* Category chips */}
-        <div className="flex gap-2 flex-wrap items-center">
-          <span className="text-[10.5px] font-bold uppercase tracking-[.09em] text-muted-foreground/60">Category</span>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCat(c)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-[12.5px] font-[500] border transition-all duration-150",
-                cat === c
-                  ? "bg-crimson border-crimson text-white shadow-md shadow-crimson/20"
-                  : "bg-card border-border text-muted-foreground hover:border-crimson/50 hover:text-foreground"
-              )}
-            >
-              {c}
-            </button>
-          ))}
-          <div className="w-px h-4 bg-border mx-1" />
-          <span className="text-[10.5px] font-bold uppercase tracking-[.09em] text-muted-foreground/60">Commitment</span>
-          {COMMITMENTS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCom(c)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-[12.5px] font-[500] border transition-all duration-150",
-                com === c
-                  ? "bg-navy border-navy text-white"
-                  : "bg-card border-border text-muted-foreground hover:border-navy/50 hover:text-foreground"
-              )}
-            >
-              {c}
-            </button>
-          ))}
+        <div className="space-y-3">
+          <div className="-mx-1 overflow-x-auto pb-1">
+            <div className="flex min-w-max items-center gap-2 px-1">
+              <span className="text-[10.5px] font-bold uppercase tracking-[.09em] text-muted-foreground/60">Category</span>
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCat(c)}
+                  className={cn(
+                    "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[12.5px] font-[500] transition-all duration-150",
+                    cat === c
+                      ? "bg-crimson border-crimson text-white shadow-md shadow-crimson/20"
+                      : "bg-card border-border text-muted-foreground hover:border-crimson/50 hover:text-foreground"
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="-mx-1 overflow-x-auto pb-1">
+            <div className="flex min-w-max items-center gap-2 px-1">
+              <span className="text-[10.5px] font-bold uppercase tracking-[.09em] text-muted-foreground/60">Commitment</span>
+              {COMMITMENTS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCom(c)}
+                  className={cn(
+                    "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[12.5px] font-[500] transition-all duration-150",
+                    com === c
+                      ? "bg-navy border-navy text-white"
+                      : "bg-card border-border text-muted-foreground hover:border-navy/50 hover:text-foreground"
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -258,8 +265,8 @@ function ClubCard({
       </Link>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-[11.5px] text-muted-foreground flex items-center gap-1">
             <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.3" stroke="currentColor" strokeWidth="1.2"/><path d="M2 9.5c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
             {club._count.memberships}
@@ -277,7 +284,7 @@ function ClubCard({
           onClick={onToggle}
           disabled={isPending}
           className={cn(
-            "px-3.5 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 border",
+            "w-full rounded-lg border px-3.5 py-2 text-[12px] font-medium transition-all duration-150 sm:w-auto",
             club.joined
               ? "bg-muted border-border text-muted-foreground hover:bg-red-50 hover:border-red-200 hover:text-red-600 dark:hover:bg-red-900/20"
               : "bg-crimson border-crimson text-white shadow-md shadow-crimson/20 hover:bg-crimson/90 hover:shadow-crimson/30"

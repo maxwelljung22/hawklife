@@ -37,7 +37,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
       {/* Welcome banner */}
       <motion.div
         {...fu(0)}
-        className="relative flex items-center justify-between overflow-hidden rounded-[32px] border border-[rgba(255,255,255,0.07)] px-9 py-8 shadow-[0_30px_80px_rgba(12,24,36,0.18)]"
+        className="relative overflow-hidden rounded-[32px] border border-[rgba(255,255,255,0.07)] px-5 py-6 shadow-[0_30px_80px_rgba(12,24,36,0.18)] sm:px-7 sm:py-7 lg:flex lg:items-center lg:justify-between lg:px-9 lg:py-8"
         style={{ background: "linear-gradient(135deg, #0C1824 0%, #12263A 58%, #182D45 100%)" }}
       >
         {/* Orbs */}
@@ -70,6 +70,19 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
             </div>
           ))}
         </div>
+
+        <div className="relative z-10 mt-5 grid grid-cols-3 gap-2.5 lg:hidden">
+          {[
+            { num: membershipCount, label: "Clubs" },
+            { num: upcomingEvents.length, label: "Week" },
+            { num: unreadNotifs, label: "Unread" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-[20px] border border-white/8 bg-white/5 px-3 py-3 text-center backdrop-blur-md">
+              <p className="text-white" style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{s.num}</p>
+              <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "rgba(255,255,255,.42)", marginTop: 4 }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
       </motion.div>
 
       {/* Stats grid */}
@@ -97,7 +110,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
 
           {/* My Clubs */}
           <motion.div {...fu(0.1)}>
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600 }}>My Clubs</h2>
               <Link href="/clubs" className="text-[12.5px] font-semibold transition-colors" style={{ color: "#8B1A1A" }}>Browse all →</Link>
             </div>
@@ -111,7 +124,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
               <div className="space-y-2">
                 {myMemberships.map((m: any) => (
                   <Link key={m.id} href={`/clubs/${m.club.slug}`}>
-                    <div className="surface-card flex items-center gap-3.5 rounded-[24px] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer">
+                    <div className="surface-card flex items-start gap-3.5 rounded-[24px] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer sm:items-center">
                       <div className="h-10 w-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: `linear-gradient(135deg, ${m.club.gradientFrom}, ${m.club.gradientTo})` }}>
                         {m.club.emoji}
                       </div>
@@ -122,7 +135,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
                           {m.club.meetingTime && ` · ${m.club.meetingTime}`}
                         </p>
                       </div>
-                      <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground capitalize">{m.club.category.toLowerCase()}</span>
+                      <span className="mt-0.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium capitalize text-muted-foreground sm:mt-0">{m.club.category.toLowerCase()}</span>
                     </div>
                   </Link>
                 ))}
@@ -132,7 +145,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
 
           {/* Recent announcements */}
           <motion.div {...fu(0.15)}>
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600 }}>Announcements</h2>
               <Link href="/announcements" className="text-[12.5px] font-semibold" style={{ color: "#8B1A1A" }}>See all →</Link>
             </div>
@@ -144,7 +157,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
                 </div>
               ) : (
                 recentPosts.map((post: any, i: number) => (
-                  <div key={post.id} className={cn("flex gap-3 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer", i < recentPosts.length - 1 && "border-b border-border")}>
+                  <div key={post.id} className={cn("flex gap-3 px-4 py-4 transition-colors cursor-pointer hover:bg-muted/30 sm:px-5", i < recentPosts.length - 1 && "border-b border-border")}>
                     <div className="h-8 w-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm" style={{ background: `linear-gradient(135deg, ${post.club?.gradientFrom ?? "#0C1824"}, ${post.club?.gradientTo ?? "#152438"})` }}>
                       {post.club?.emoji ?? "📣"}
                     </div>
@@ -172,7 +185,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
 
           {/* Upcoming events */}
           <motion.div {...fu(0.18)}>
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600 }}>Upcoming</h2>
               <Link href="/calendar" className="text-[12px] font-semibold" style={{ color: "#8B1A1A" }}>Calendar →</Link>
             </div>

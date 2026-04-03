@@ -96,11 +96,29 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
         </h1>
       </div>
 
+      <div className="space-y-3 lg:hidden">
+        <div className="rounded-2xl border border-border bg-card px-4 py-4 shadow-card">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-display text-[18px] font-semibold text-foreground">Upcoming</p>
+            <Link href="/clubs" className="text-[12px] font-semibold text-crimson">Browse clubs →</Link>
+          </div>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-[13px] text-muted-foreground">No upcoming events right now.</p>
+          ) : (
+            <div className="space-y-2">
+              {upcomingEvents.slice(0, 4).map((evt, i) => (
+                <EventRow key={evt.id} evt={evt} index={i} compact />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Month Grid */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-card">
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-4 shadow-card sm:p-6">
           {/* Month nav */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-[20px] font-semibold text-foreground">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
@@ -127,7 +145,7 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 mb-1">
+          <div className="mb-1 hidden grid-cols-7 sm:grid">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
               <div key={d} className="text-center text-[10.5px] font-bold uppercase tracking-[.07em] text-muted-foreground py-2">
                 {d}
@@ -136,7 +154,8 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-px bg-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[420px] grid-cols-7 gap-px overflow-hidden rounded-xl bg-border sm:min-w-0">
             {calendarDays.map((day) => {
               const key       = format(day, "yyyy-MM-dd");
               const dayEvents = eventsByDate[key] ?? [];
@@ -149,7 +168,7 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
                   key={key}
                   onClick={() => setSelectedDay(day)}
                   className={cn(
-                    "relative bg-card min-h-[72px] p-1.5 text-left hover:bg-muted/40 transition-colors group",
+                    "group relative bg-card min-h-[60px] p-1.5 text-left transition-colors hover:bg-muted/40 sm:min-h-[72px]",
                     !isCurrentMonth && "bg-muted/20 dark:bg-muted/10",
                     isSelected && "bg-crimson/5 dark:bg-crimson/10 ring-1 ring-inset ring-crimson/20"
                   )}
@@ -169,15 +188,20 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
                       <div
                         key={evt.id}
                         className={cn(
-                          "text-[9px] font-semibold text-white px-1.5 py-0.5 rounded truncate leading-none",
+                          "hidden truncate rounded px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white sm:block",
                           TYPE_COLORS[evt.type] ?? "bg-muted-foreground/60"
                         )}
                       >
                         {evt.club?.emoji ?? "📅"} {evt.title}
                       </div>
                     ))}
+                    {dayEvents.length > 0 && (
+                      <div className="pl-0.5 text-[9px] font-medium text-muted-foreground sm:hidden">
+                        {dayEvents.length} event{dayEvents.length === 1 ? "" : "s"}
+                      </div>
+                    )}
                     {dayEvents.length > 2 && (
-                      <div className="text-[9px] text-muted-foreground font-medium pl-1">
+                      <div className="hidden pl-1 text-[9px] font-medium text-muted-foreground sm:block">
                         +{dayEvents.length - 2} more
                       </div>
                     )}
@@ -185,13 +209,14 @@ export function CalendarClient({ events }: { events: CalEvent[] }) {
                 </button>
               );
             })}
+            </div>
           </div>
         </div>
 
         {/* Right panel */}
         <div className="space-y-4">
           {/* Selected day events */}
-          <div className="bg-card border border-border rounded-2xl shadow-card overflow-hidden">
+          <div className="hidden bg-card border border-border rounded-2xl shadow-card overflow-hidden lg:block">
             <div className="px-5 py-4 border-b border-border">
               <p className="font-semibold text-[14px] text-foreground">
                 {selectedDay ? format(selectedDay, "EEEE, MMMM d") : "Select a day"}
@@ -249,7 +274,7 @@ function EventRow({ evt, index, compact = false }: { evt: CalEvent; index: numbe
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0, transition: { delay: index * 0.05, duration: 0.25 } }}
       className={cn(
-        "flex gap-3 px-5 py-3 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors",
+        "flex gap-3 border-b border-border/50 px-4 py-3 last:border-0 transition-colors hover:bg-muted/30 sm:px-5",
         slug && "cursor-pointer"
       )}
     >
@@ -262,7 +287,7 @@ function EventRow({ evt, index, compact = false }: { evt: CalEvent; index: numbe
           </p>
         )}
         {!compact && (
-          <div className="flex items-center gap-3 mt-1">
+          <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
             {evt.location && (
               <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> {evt.location}
