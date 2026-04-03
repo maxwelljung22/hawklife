@@ -11,7 +11,7 @@ if [ ! -f ".env" ]; then
   echo "   DATABASE_URL  — Supabase pooled connection string"
   echo "   DIRECT_URL    — Supabase direct connection string"
   echo "   NEXTAUTH_SECRET — run: openssl rand -base64 32"
-  echo "   NEXTAUTH_URL  — http://preplife-v3.vercel.app"
+  echo "   NEXTAUTH_URL  — https://preplife-v3.vercel.app"
   echo "   GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET"
   echo "   AIRTABLE_API_KEY"
   echo ""
