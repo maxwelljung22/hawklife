@@ -70,47 +70,52 @@ const featureStories = [
     label: "Flex Time",
     eyebrow: "Session flow",
     blurb: "Choose the right room in seconds.",
+    previewTitle: "Available right now",
+    previewItems: ["Library Commons", "Physics Lab", "College Center"],
     metrics: [
       { value: "2:05", label: "Starts" },
       { value: "18", label: "Sessions" },
       { value: "1 tap", label: "Join" },
     ],
     lines: ["Live capacity", "Instant join", "Clear rooms"],
+    accent: "from-[#8a1f2d]/90 via-[#b83346]/70 to-[#f1a1ab]/40",
   },
   {
     label: "Clubs",
     eyebrow: "Club life",
     blurb: "Every club finally has a real home.",
+    previewTitle: "This week in clubs",
+    previewItems: ["Robotics build night", "Campus ministry update", "Mock trial agenda"],
     metrics: [
       { value: "12", label: "Active clubs" },
       { value: "4", label: "Posts today" },
       { value: "3", label: "Events next" },
     ],
     lines: ["Club updates", "Resources", "Member view"],
+    accent: "from-[#7b2035]/90 via-[#c75d57]/72 to-[#f0c58b]/36",
   },
   {
     label: "Attendance",
     eyebrow: "Verified",
     blurb: "Attendance that feels immediate and real.",
+    previewTitle: "Check-in status",
+    previewItems: ["QR recognized", "Marked on time", "Roster updated live"],
     metrics: [
       { value: "QR", label: "Check-in" },
       { value: "Live", label: "Status" },
       { value: "0 lag", label: "Feedback" },
     ],
     lines: ["Scan quickly", "Mark late", "Track instantly"],
-  },
-  {
-    label: "Everything connected",
-    eyebrow: "Core system",
-    blurb: "One system for the rhythm of the Prep.",
-    metrics: [
-      { value: "1", label: "Platform" },
-      { value: "All", label: "Updates" },
-      { value: "Fast", label: "Feel" },
-    ],
-    lines: ["Shared context", "Unified timeline", "Cleaner day"],
+    accent: "from-[#6c1224]/92 via-[#db4a57]/70 to-[#ffd0c4]/42",
   },
 ] as const;
+
+const connectedStory = {
+  eyebrow: "Core system",
+  label: "Everything connected",
+  blurb: "One system for the rhythm of the Prep.",
+  lines: ["Shared context", "Unified timeline", "Cleaner day"],
+} as const;
 
 function UnifiedFeaturePanel({
   index,
@@ -126,132 +131,81 @@ function UnifiedFeaturePanel({
   const activeOpacity = useTransform(progress, [start - 0.08, start, start + 0.16, start + 0.3], [0.14, 1, 1, 0.18]);
   const cardY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 18, 0]);
   const cardScale = useTransform(progress, [start - 0.08, start + 0.12], [reduceMotion ? 1 : 0.96, 1]);
-  const rotateY = useTransform(progress, [start, start + 0.08, start + 0.16], [0, 90, 180]);
-  const glowOpacity = useTransform(progress, [start - 0.02, start + 0.14], [0.18, 1]);
-  const frontOpacity = useTransform(progress, [start, start + 0.06, start + 0.12], [1, 0.55, 0]);
-  const backOpacity = useTransform(progress, [start + 0.06, start + 0.12, start + 0.18], [0, 0.72, 1]);
-  const titleOpacity = useTransform(progress, [start - 0.04, start + 0.1], [0.2, 1]);
-  const blurbOpacity = useTransform(progress, [start + 0.02, start + 0.14], [0, 1]);
-
-  if (story.label === "Everything connected") {
-    return (
-      <motion.div
-        style={{ opacity: activeOpacity, y: cardY, scale: cardScale }}
-        className="relative flex min-h-[36rem] items-center sm:min-h-[40rem]"
-      >
-        <div className="w-full py-16 sm:py-20">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
-          <motion.h3
-            style={{ opacity: titleOpacity }}
-            className="mt-5 max-w-[10ch] text-balance font-display text-[clamp(3.25rem,7vw,6.8rem)] font-semibold tracking-[-0.1em] text-white"
-          >
-            {story.label}
-          </motion.h3>
-          <motion.p
-            style={{ opacity: blurbOpacity }}
-            className="mt-5 max-w-[28rem] text-[1.02rem] leading-8 text-white/58"
-          >
-            {story.blurb}
-          </motion.p>
-
-          <div className="mt-14 space-y-6">
-            {story.lines.map((item, itemIndex) => (
-              <motion.p
-                key={item}
-                initial={reduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 28 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.45, delay: itemIndex * 0.1 }}
-                viewport={{ once: true, amount: 0.6 }}
-                className="font-display text-[clamp(1.6rem,3vw,2.5rem)] tracking-[-0.07em] text-white/74"
-              >
-                {item}
-              </motion.p>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
+  const headerOpacity = useTransform(progress, [start - 0.04, start + 0.08], [0.3, 1]);
+  const previewOpacity = useTransform(progress, [start + 0.02, start + 0.16], [0.2, 1]);
+  const previewX = useTransform(progress, [start - 0.04, start + 0.12], [reduceMotion ? 0 : 22, 0]);
 
   return (
-    <motion.div style={{ opacity: activeOpacity, y: cardY, scale: cardScale }} className="relative h-[29rem] sm:h-[31rem]">
-      <motion.div
-        style={{ rotateY, transformStyle: "preserve-3d" as const }}
-        className="relative h-full w-full"
-      >
-        <motion.div
-          style={{ backfaceVisibility: "hidden", opacity: frontOpacity }}
-          className="absolute inset-0 flex items-end overflow-hidden rounded-[2.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-6 shadow-[0_18px_54px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-8"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,transparent,rgba(0,0,0,0.32))]" />
-          <div className="relative">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
-            <h3 className="mt-5 max-w-[12ch] text-balance font-display text-[clamp(3rem,7vw,6.6rem)] font-semibold tracking-[-0.09em] text-white">
+    <motion.div style={{ opacity: activeOpacity, y: cardY, scale: cardScale }} className="relative min-h-[34rem]">
+      <div className="absolute inset-0 rounded-[2.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] shadow-[0_28px_90px_rgba(0,0,0,0.28)]" />
+      <div className={cn("pointer-events-none absolute inset-x-0 top-0 h-44 rounded-t-[2.6rem] bg-gradient-to-r opacity-90 blur-3xl", story.accent)} />
+
+      <div className="relative grid min-h-[34rem] gap-8 overflow-hidden rounded-[2.6rem] border border-white/10 bg-black/[0.72] p-6 backdrop-blur-xl sm:p-8 lg:grid-cols-[0.86fr_1.14fr] lg:gap-10">
+        <motion.div style={{ opacity: headerOpacity }} className="flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">{story.eyebrow}</p>
+            <h3 className="mt-5 max-w-[10ch] text-balance font-display text-[clamp(2.9rem,6vw,5.7rem)] font-semibold tracking-[-0.09em] text-white">
               {story.label}
             </h3>
-            <p className="mt-4 max-w-[26rem] text-[0.98rem] leading-7 text-white/52">{story.blurb}</p>
+            <p className="mt-5 max-w-[24rem] text-[1rem] leading-8 text-white/58">{story.blurb}</p>
+          </div>
+
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            {story.metrics.map((item) => (
+              <div key={item.label} className="rounded-[1.35rem] border border-white/10 bg-white/[0.045] px-4 py-4">
+                <p className="font-display text-[1.75rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-white/46">{item.label}</p>
+              </div>
+            ))}
           </div>
         </motion.div>
 
-        <motion.div
-          style={{
-            transform: "rotateY(180deg)",
-            backfaceVisibility: "hidden",
-            opacity: backOpacity,
-          }}
-          className="absolute inset-0 overflow-hidden rounded-[2.4rem] border border-[#ffb3b8]/15 bg-[linear-gradient(135deg,rgba(112,5,17,0.98),rgba(176,18,36,0.92)_38%,rgba(230,82,92,0.84)_70%,rgba(255,143,134,0.66)_100%)] p-4 shadow-[0_36px_120px_rgba(120,8,20,0.36)] sm:p-5"
-        >
-          <motion.div
-            style={{ opacity: glowOpacity }}
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.14),transparent_30%)]"
-          />
-          <div className="relative flex h-full flex-col overflow-hidden rounded-[1.9rem] border border-white/12 bg-black/16 p-5 backdrop-blur-md sm:p-6">
-            <div className="absolute -right-14 top-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-black/20 blur-3xl" />
-
-            <div className="relative flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/56">{story.eyebrow}</p>
-                <p className="mt-3 font-display text-[clamp(2.4rem,5vw,4rem)] font-semibold tracking-[-0.09em] text-white">
-                  {story.label}
-                </p>
+        <motion.div style={{ opacity: previewOpacity, x: previewX }} className="relative">
+          <div className="absolute inset-0 rounded-[2.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+          <div className="relative h-full rounded-[2.1rem] border border-white/10 bg-[#090909]/90 p-4 sm:p-5">
+            <div className="flex items-center justify-between border-b border-white/8 pb-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Live preview</p>
+                <p className="mt-2 font-display text-[1.55rem] tracking-[-0.05em] text-white">{story.previewTitle}</p>
               </div>
-              <span className="inline-flex h-fit rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] text-white/74">
-                HawkLife
-              </span>
+              <div className="flex gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+                <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+                <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+              </div>
             </div>
 
-            <div className="relative mt-6 flex-1">
-              <div className="absolute inset-x-0 top-0 h-24 rounded-[2rem] bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.05),transparent)] blur-2xl" />
-              <div className="relative flex h-full flex-col justify-between rounded-[1.7rem] border border-white/12 bg-white/[0.06] p-5">
-                <p className="max-w-[24rem] text-[1.02rem] leading-7 text-white/82">{story.blurb}</p>
+            <div className="mt-4 space-y-3">
+              {story.previewItems.map((item, itemIndex) => (
+                <motion.div
+                  key={item}
+                  initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0.45, y: 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: itemIndex * 0.08 }}
+                  viewport={{ once: true, amount: 0.55 }}
+                  className="flex items-center justify-between rounded-[1.35rem] border border-white/8 bg-white/[0.04] px-4 py-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={cn("h-2.5 w-2.5 rounded-full bg-gradient-to-r", story.accent)} />
+                    <span className="text-[0.98rem] text-white/84">{item}</span>
+                  </div>
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-white/52">
+                    Live
+                  </span>
+                </motion.div>
+              ))}
+            </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {story.metrics.map((item) => (
-                    <div key={item.label} className="rounded-[1.3rem] border border-white/12 bg-white/[0.08] px-4 py-4">
-                      <p className="font-display text-[1.9rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/56">{item.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {story.lines.map((item, itemIndex) => (
-                    <motion.span
-                      key={item}
-                      animate={{ opacity: [0.7, 1, 0.7] }}
-                      transition={{ duration: 2.1, repeat: Infinity, delay: itemIndex * 0.16 }}
-                      className="rounded-full border border-white/14 bg-white/[0.08] px-3 py-2 text-[12px] font-medium text-white/86"
-                    >
-                      {item}
-                    </motion.span>
-                  ))}
-                </div>
-              </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {story.lines.map((item) => (
+                <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-white/56">
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -337,8 +291,8 @@ function FeaturesScene() {
   const panelOpacity = useTransform(scrollYProgress, [0.1, 0.22, 0.84, 0.96], [0, 1, 1, 0]);
 
   return (
-    <SceneFrame sceneRef={ref} className="-mt-[12svh] min-h-[230svh]">
-      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-7xl gap-10 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-14">
+    <SceneFrame sceneRef={ref} className="-mt-[10svh] min-h-[210svh]">
+      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-7xl gap-12 px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:gap-16">
         <div className="max-w-md lg:sticky lg:top-24">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Core system</p>
           <h2 className="text-balance font-display text-[clamp(2.2rem,5vw,4.6rem)] font-semibold tracking-[-0.08em] text-white">
@@ -349,7 +303,7 @@ function FeaturesScene() {
           </p>
         </div>
 
-        <div className="grid gap-10 sm:gap-12">
+        <div className="grid gap-8 sm:gap-10">
           {featureStories.map((feature, index) => (
             <UnifiedFeaturePanel
               key={feature.label}
@@ -357,6 +311,47 @@ function FeaturesScene() {
               progress={scrollYProgress}
               reduceMotion={reduceMotion}
             />
+          ))}
+        </div>
+      </motion.div>
+    </SceneFrame>
+  );
+}
+
+function ConnectedScene() {
+  const ref = useRef<HTMLElement | null>(null);
+  const reduceMotion = Boolean(useReducedMotion());
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const opacity = useTransform(scrollYProgress, [0.14, 0.28, 0.78, 0.92], [0, 1, 1, 0]);
+  const y = useTransform(scrollYProgress, [0.16, 0.34], [reduceMotion ? 0 : 36, 0]);
+  const titleOpacity = useTransform(scrollYProgress, [0.22, 0.42], [0.2, 1]);
+
+  return (
+    <SceneFrame sceneRef={ref} className="min-h-[180svh]">
+      <motion.div style={{ opacity, y }} className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 text-center">
+        <div className="absolute inset-x-[18%] top-1/2 -z-10 h-64 -translate-y-1/2 rounded-full bg-[#7d1828]/18 blur-[150px]" />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/38">{connectedStory.eyebrow}</p>
+        <motion.h2
+          style={{ opacity: titleOpacity }}
+          className="mt-6 max-w-4xl text-balance font-display text-[clamp(3.2rem,9vw,7.2rem)] font-semibold tracking-[-0.1em] text-white"
+        >
+          {connectedStory.label}
+        </motion.h2>
+        <p className="mt-6 max-w-2xl text-[clamp(1.02rem,2vw,1.18rem)] leading-8 text-white/56">
+          {connectedStory.blurb}
+        </p>
+        <div className="mt-16 space-y-6 sm:mt-20">
+          {connectedStory.lines.map((item, itemIndex) => (
+            <motion.p
+              key={item}
+              initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: itemIndex * 0.12 }}
+              viewport={{ once: true, amount: 0.6 }}
+              className="font-display text-[clamp(1.85rem,4vw,3.4rem)] tracking-[-0.08em] text-white/72"
+            >
+              {item}
+            </motion.p>
           ))}
         </div>
       </motion.div>
@@ -373,7 +368,7 @@ function QrScene() {
   const rotate = useTransform(scrollYProgress, [0.18, 0.72], [reduceMotion ? 0 : -4, 0]);
 
   return (
-    <SceneFrame sceneRef={ref} className="-mt-[2svh] sm:-mt-[4svh]">
+    <SceneFrame sceneRef={ref} className="min-h-[150svh]">
       <motion.div style={{ opacity }} className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 text-center">
         <motion.div
           style={{ scale, rotate }}
@@ -507,6 +502,7 @@ export function CinematicAbout() {
         <ProblemScene />
         <TransitionScene />
         <FeaturesScene />
+        <ConnectedScene />
         <QrScene />
         <MobileScene />
         <ClosingScene />
