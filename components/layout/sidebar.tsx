@@ -235,7 +235,7 @@ export function Sidebar({
         )}
         style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}
       >
-        <SidebarNavContent user={user} onNavigate={handleNavigate} mobile />
+        <SidebarNavContent user={user} onNavigate={handleNavigate} />
       </aside>
     </>
   );
