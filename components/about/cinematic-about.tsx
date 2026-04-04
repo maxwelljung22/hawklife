@@ -137,9 +137,9 @@ function UnifiedFeaturePanel({
     return (
       <motion.div
         style={{ opacity: activeOpacity, y: cardY, scale: cardScale }}
-        className="relative flex min-h-[29rem] items-center sm:min-h-[31rem]"
+        className="relative flex min-h-[36rem] items-center sm:min-h-[40rem]"
       >
-        <div className="w-full py-10">
+        <div className="w-full py-16 sm:py-20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
           <motion.h3
             style={{ opacity: titleOpacity }}
@@ -154,7 +154,7 @@ function UnifiedFeaturePanel({
             {story.blurb}
           </motion.p>
 
-          <div className="mt-10 space-y-4">
+          <div className="mt-14 space-y-6">
             {story.lines.map((item, itemIndex) => (
               <motion.p
                 key={item}
@@ -337,8 +337,8 @@ function FeaturesScene() {
   const panelOpacity = useTransform(scrollYProgress, [0.1, 0.22, 0.84, 0.96], [0, 1, 1, 0]);
 
   return (
-    <SceneFrame sceneRef={ref} className="-mt-[16svh] min-h-[190svh]">
-      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-7xl gap-6 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+    <SceneFrame sceneRef={ref} className="-mt-[12svh] min-h-[230svh]">
+      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-7xl gap-10 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-14">
         <div className="max-w-md lg:sticky lg:top-24">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Core system</p>
           <h2 className="text-balance font-display text-[clamp(2.2rem,5vw,4.6rem)] font-semibold tracking-[-0.08em] text-white">
@@ -349,7 +349,7 @@ function FeaturesScene() {
           </p>
         </div>
 
-        <div className="grid gap-5">
+        <div className="grid gap-10 sm:gap-12">
           {featureStories.map((feature, index) => (
             <UnifiedFeaturePanel
               key={feature.label}
@@ -373,7 +373,7 @@ function QrScene() {
   const rotate = useTransform(scrollYProgress, [0.18, 0.72], [reduceMotion ? 0 : -4, 0]);
 
   return (
-    <SceneFrame sceneRef={ref} className="-mt-[14svh]">
+    <SceneFrame sceneRef={ref} className="-mt-[2svh] sm:-mt-[4svh]">
       <motion.div style={{ opacity }} className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 text-center">
         <motion.div
           style={{ scale, rotate }}
