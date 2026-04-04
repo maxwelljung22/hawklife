@@ -4,6 +4,68 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { canAccessFacultyTools } from "@/lib/roles";
+
+type CreatePollInput = {
+  title: string;
+  description?: string;
+  visibility: "PUBLIC" | "ANONYMOUS";
+  options: string[];
+  endsAt?: string;
+};
+
+export async function createPollAction(input: CreatePollInput) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+  if (!canAccessFacultyTools(session.user.role)) {
+    return { error: "Only faculty and admins can create polls." };
+  }
+
+  const title = input.title.trim().replace(/\s+/g, " ");
+  const options = input.options.map((option) => option.trim()).filter(Boolean);
+  const uniqueOptions = Array.from(new Set(options));
+
+  if (!title) return { error: "Add a poll title." };
+  if (uniqueOptions.length < 2) return { error: "Add at least two poll options." };
+
+  const endsAt = input.endsAt ? new Date(input.endsAt) : null;
+  if (endsAt && Number.isNaN(endsAt.getTime())) {
+    return { error: "Enter a valid end date." };
+  }
+
+  try {
+    const poll = await prisma.poll.create({
+      data: {
+        title,
+        description: input.description?.trim() || null,
+        visibility: input.visibility,
+        endsAt,
+        isActive: true,
+        createdById: session.user.id,
+        options: {
+          create: uniqueOptions.map((text, index) => ({
+            text,
+            order: index,
+          })),
+        },
+      },
+      include: {
+        club: { select: { name: true, emoji: true, slug: true } },
+        options: {
+          orderBy: { order: "asc" },
+          include: { _count: { select: { votes: true } } },
+        },
+        _count: { select: { votes: true } },
+      },
+    });
+
+    revalidatePath("/voting");
+    return { success: true, poll };
+  } catch (err) {
+    console.error("[createPoll]", err);
+    return { error: "Failed to create poll." };
+  }
+}
 
 export async function castVoteAction(pollId: string, optionId: string) {
   const session = await auth();

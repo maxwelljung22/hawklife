@@ -4,6 +4,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isToday, isSameDay,
@@ -87,16 +88,34 @@ function createEmptyForm() {
   } satisfies EventFormState;
 }
 
+function normalizeManagedEvent(
+  event: Omit<CalEvent, "club"> & { club?: CalEvent["club"] | null }
+): CalEvent {
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.description ?? null,
+    location: event.location ?? null,
+    type: event.type,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    isAllDay: event.isAllDay,
+    club: event.club ?? null,
+  };
+}
+
 export function CalendarClient({ events, canManageSchoolEvents = false }: { events: CalEvent[]; canManageSchoolEvents?: boolean }) {
+  const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [isPending, startTransition] = useTransition();
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [form, setForm] = useState<EventFormState>(createEmptyForm());
+  const [eventItems, setEventItems] = useState(events);
   const { toast } = useToast();
   const validEvents = useMemo(
-    () => events.filter((evt) => getEventDate(evt.startTime)),
-    [events]
+    () => eventItems.filter((evt) => getEventDate(evt.startTime)),
+    [eventItems]
   );
 
   const calendarDays = useMemo(() => {
@@ -194,9 +213,16 @@ export function CalendarClient({ events, canManageSchoolEvents = false }: { even
         description: `${result.event.title} is now on the school calendar.`,
       });
 
+      const nextEvent = normalizeManagedEvent(result.event);
+      setEventItems((current) => {
+        if (editingEventId) {
+          return current.map((item) => (item.id === nextEvent.id ? nextEvent : item));
+        }
+        return [nextEvent, ...current];
+      });
       setEditingEventId(null);
       setForm(createEmptyForm());
-      window.location.reload();
+      router.refresh();
     });
   };
 
@@ -217,11 +243,12 @@ export function CalendarClient({ events, canManageSchoolEvents = false }: { even
         description: `${event.title} was removed from the school calendar.`,
       });
 
+      setEventItems((current) => current.filter((item) => item.id !== event.id));
       if (editingEventId === event.id) {
         setEditingEventId(null);
         setForm(createEmptyForm());
       }
-      window.location.reload();
+      router.refresh();
     });
   };
 
@@ -300,22 +327,22 @@ export function CalendarClient({ events, canManageSchoolEvents = false }: { even
             <h2 className="font-display text-[20px] font-semibold text-foreground">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-                className="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted"
               >
                 <ChevronLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               <button
                 onClick={() => { setCurrentMonth(new Date()); setSelectedDay(new Date()); }}
-                className="px-3 h-8 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-muted transition-colors"
+                className="h-10 rounded-xl border border-border bg-card px-4 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted"
               >
                 Today
               </button>
               <button
                 onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-                className="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted"
               >
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -503,7 +530,7 @@ function SchoolEventManager({
             placeholder="Description"
             className="min-h-[110px]"
           />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             <Input
               value={form.location}
               onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
@@ -522,7 +549,7 @@ function SchoolEventManager({
               <option value="OTHER">Other</option>
             </select>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             <Input
               type="datetime-local"
               value={form.startTime}
@@ -534,12 +561,12 @@ function SchoolEventManager({
               onChange={(event) => setForm((current) => ({ ...current, endTime: event.target.value }))}
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={onSubmit} disabled={isPending}>
+          <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap">
+            <Button onClick={onSubmit} disabled={isPending} className="min-w-[152px]">
               {editingEventId ? "Save changes" : "Add event"}
             </Button>
             {editingEventId ? (
-              <Button variant="ghost" onClick={onReset} disabled={isPending}>
+              <Button variant="ghost" onClick={onReset} disabled={isPending} className="min-w-[132px]">
                 Cancel edit
               </Button>
             ) : null}
@@ -578,12 +605,12 @@ function SchoolEventManager({
                       <p className="mt-1 text-[12px] text-muted-foreground">{event.location}</p>
                     ) : null}
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => onEdit(event)}>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => onEdit(event)} className="min-w-[92px]">
                       <Edit3 className="h-4 w-4" />
                       Edit
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => onDelete(event)}>
+                    <Button variant="ghost" size="sm" onClick={() => onDelete(event)} className="min-w-[98px]">
                       <Trash2 className="h-4 w-4" />
                       Delete
                     </Button>

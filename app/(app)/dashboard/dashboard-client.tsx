@@ -3,13 +3,15 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowUpRight, CalendarDays, Compass, Megaphone, Sparkles } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Compass, Megaphone, Sparkles, Vote } from "lucide-react";
 import { formatRelativeTime, cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { NhsRecord } from "@/lib/airtable";
+import { canAccessFacultyTools } from "@/lib/roles";
+import type { UserRole } from "@prisma/client";
 
 interface Props {
-  user:            { name?: string | null; email?: string | null; image?: string | null; role: string };
+  user:            { name?: string | null; email?: string | null; image?: string | null; role: UserRole };
   membershipCount: number;
   upcomingEvents:  any[];
   recentPosts:     any[];
@@ -37,6 +39,10 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
     { href: "/calendar", label: "Open calendar", icon: CalendarDays, note: "See what is happening next" },
     { href: "/announcements", label: "View updates", icon: Megaphone, note: "Catch the latest school news" },
   ];
+  const managementActions = canAccessFacultyTools(user.role)
+    ? [{ href: "/voting", label: "Create polls", icon: Vote, note: "Launch quick votes without slowing down the day" }]
+    : [];
+  const allQuickActions = [...quickActions, ...managementActions];
 
   return (
     <div className="space-y-7">
@@ -77,7 +83,7 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
           </div>
 
           <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-            {quickActions.map((action, index) => (
+            {allQuickActions.map((action, index) => (
               <Link key={action.href} href={action.href}>
                 <motion.div
                   {...fu(0.08 + index * 0.05)}

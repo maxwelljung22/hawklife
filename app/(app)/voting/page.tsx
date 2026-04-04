@@ -1,7 +1,7 @@
 // app/(app)/voting/page.tsx
 import { prisma } from "@/lib/prisma";
 import { VotingClient } from "./voting-client";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 
 export const metadata = { title: "Polls & Elections" };
@@ -37,6 +37,7 @@ export default async function VotingPage() {
       userVotes={votesMap}
       userId={session.user.id}
       isAdmin={canAccessAdmin(session.user.role)}
+      canManagePolls={canAccessFacultyTools(session.user.role)}
     />
   );
 }

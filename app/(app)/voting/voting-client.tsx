@@ -4,11 +4,14 @@
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { Trophy, Clock, Vote, CheckCircle } from "lucide-react";
-import { castVoteAction } from "./actions";
+import { Trophy, Clock, Vote, CheckCircle, PlusCircle, WandSparkles } from "lucide-react";
+import { castVoteAction, createPollAction } from "./actions";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PollOption {
   id: string;
@@ -34,12 +37,20 @@ interface Props {
   userVotes: Record<string, string>; // pollId → optionId
   userId: string;
   isAdmin: boolean;
+  canManagePolls: boolean;
 }
 
-export function VotingClient({ polls: initial, userVotes: initialVotes, userId, isAdmin }: Props) {
+export function VotingClient({ polls: initial, userVotes: initialVotes, userId, isAdmin, canManagePolls }: Props) {
   const [polls, setPolls] = useState(initial);
   const [myVotes, setMyVotes] = useState(initialVotes);
   const [pending, startTransition] = useTransition();
+  const [createForm, setCreateForm] = useState({
+    title: "",
+    description: "",
+    visibility: "ANONYMOUS" as "PUBLIC" | "ANONYMOUS",
+    options: ["", ""],
+    endsAt: "",
+  });
   const { toast } = useToast();
 
   const handleVote = (pollId: string, optionId: string) => {
@@ -75,6 +86,30 @@ export function VotingClient({ polls: initial, userVotes: initialVotes, userId, 
   const active   = polls.filter((p) => p.isActive);
   const closed   = polls.filter((p) => !p.isActive);
 
+  const handleCreatePoll = () => {
+    startTransition(async () => {
+      const result = await createPollAction(createForm);
+      if ("error" in result) {
+        toast({ title: "Couldn't create poll", description: result.error, variant: "destructive" });
+        return;
+      }
+      if (!("poll" in result)) {
+        toast({ title: "Couldn't create poll", description: "Poll response was incomplete.", variant: "destructive" });
+        return;
+      }
+
+      setPolls((current) => [result.poll as any, ...current]);
+      setCreateForm({
+        title: "",
+        description: "",
+        visibility: "ANONYMOUS",
+        options: ["", ""],
+        endsAt: "",
+      });
+      toast({ title: "Poll created", description: `${result.poll.title} is now live.` });
+    });
+  };
+
   return (
     <div className="space-y-8 max-w-2xl">
       {/* Header */}
@@ -87,6 +122,86 @@ export function VotingClient({ polls: initial, userVotes: initialVotes, userId, 
           {active.length > 0 ? `${active.length} active poll${active.length !== 1 ? "s" : ""} — your vote is anonymous` : "No active polls right now"}
         </p>
       </div>
+
+      {canManagePolls ? (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0, transition: { duration: 0.28 } }}
+          className="surface-card rounded-[30px] p-5 sm:p-6"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10.5px] font-bold uppercase tracking-[.10em] text-crimson">Create poll</p>
+              <h2 className="mt-2 font-display text-[22px] font-semibold text-foreground">Launch a new vote</h2>
+              <p className="mt-2 max-w-[560px] text-[13px] leading-6 text-muted-foreground">
+                Create quick pulse checks, school-wide polls, or election questions without leaving HawkLife.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+              <WandSparkles className="h-3.5 w-3.5 text-crimson" />
+              Fast publish
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4">
+            <Input
+              value={createForm.title}
+              onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
+              placeholder="Poll title"
+            />
+            <Textarea
+              value={createForm.description}
+              onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))}
+              placeholder="Short description"
+              className="min-h-[110px]"
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <select
+                value={createForm.visibility}
+                onChange={(event) => setCreateForm((current) => ({ ...current, visibility: event.target.value as "PUBLIC" | "ANONYMOUS" }))}
+                className="flex h-12 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm text-neutral-950 shadow-[0_1px_0_rgba(17,24,39,0.02)] transition-all duration-200 focus:border-neutral-300 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-700 dark:focus:ring-white/10"
+              >
+                <option value="ANONYMOUS">Anonymous</option>
+                <option value="PUBLIC">Public</option>
+              </select>
+              <Input
+                type="datetime-local"
+                value={createForm.endsAt}
+                onChange={(event) => setCreateForm((current) => ({ ...current, endsAt: event.target.value }))}
+              />
+            </div>
+
+            <div className="grid gap-3">
+              {createForm.options.map((option, index) => (
+                <Input
+                  key={index}
+                  value={option}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      options: current.options.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)),
+                    }))
+                  }
+                  placeholder={`Option ${index + 1}`}
+                />
+              ))}
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => setCreateForm((current) => ({ ...current, options: [...current.options, ""] }))}
+                  disabled={createForm.options.length >= 6}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add option
+                </Button>
+                <Button onClick={handleCreatePoll} disabled={pending}>
+                  Publish poll
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
 
       {/* Active polls */}
       {active.length > 0 && (
