@@ -14,6 +14,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard":     "Dashboard",
   "/clubs":         "Club Directory",
   "/calendar":      "Calendar",
+  "/flex":          "Flex Block",
+  "/scan":          "Scan QR",
   "/announcements": "Announcements",
   "/voting":        "Polls & Elections",
   "/applications":  "Applications",
@@ -22,6 +24,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/nhs":           "NHS Hours",
   "/admin":         "Admin Panel",
   "/admin/charters": "Charter Reviews",
+  "/faculty/create-session": "Create Session",
+  "/club":          "Attendance QR",
   "/profile":       "Profile",
 };
 

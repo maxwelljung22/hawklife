@@ -4,19 +4,37 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAllNhsRecords } from "@/lib/airtable";
 import { AdminClient } from "./admin-client";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canAccessOversight } from "@/lib/roles";
 
 export const metadata = { title: "Admin Panel" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await auth();
-  if (!session?.user || !canAccessAdmin(session.user.role)) redirect("/dashboard?error=unauthorized");
+  if (!session?.user || !canAccessOversight(session.user.role)) redirect("/dashboard?error=unauthorized");
 
-  const [clubs, users, applications, changelog, nhsRecords] = await Promise.all([
+  const isAdmin = canAccessAdmin(session.user.role);
+  const advisorClubIds = !isAdmin
+    ? (
+        await prisma.membership.findMany({
+          where: {
+            userId: session.user.id,
+            status: "ACTIVE",
+            role: "FACULTY_ADVISOR",
+          },
+          select: { clubId: true },
+        })
+      ).map((membership) => membership.clubId)
+    : [];
+
+  const applicationWhere = isAdmin ? {} : { clubId: { in: advisorClubIds } };
+
+  const [clubs, users, applications, changelog, nhsRecords, totalEvents, attendanceCount, participatingStudents] = await Promise.all([
     prisma.club.findMany({
       orderBy: { name: "asc" },
-      include: { _count: { select: { memberships: { where: { status: "ACTIVE" } }, posts: true } } },
+      include: {
+        _count: { select: { memberships: { where: { status: "ACTIVE" } }, posts: true, events: true } },
+      },
     }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -30,15 +48,26 @@ export default async function AdminPage() {
       },
     }),
     prisma.application.findMany({
-      where: { status: { in: ["SUBMITTED", "UNDER_REVIEW"] } },
+      where: applicationWhere,
       orderBy: { createdAt: "desc" },
       include: {
-        club:      { select: { name: true, emoji: true } },
+        club:      { select: { id: true, name: true, emoji: true } },
         applicant: { select: { name: true, email: true, image: true } },
       },
     }),
     prisma.changelogEntry.findMany({ orderBy: { publishedAt: "desc" } }),
     getAllNhsRecords(),
+    prisma.event.count({
+      where: isAdmin ? {} : { clubId: { in: advisorClubIds } },
+    }),
+    prisma.attendanceRecord.count({
+      where: isAdmin ? {} : { session: { clubId: { in: advisorClubIds } } },
+    }),
+    prisma.user.count({
+      where: isAdmin
+        ? { memberships: { some: { status: "ACTIVE" } } }
+        : { memberships: { some: { status: "ACTIVE", clubId: { in: advisorClubIds } } } },
+    }),
   ]);
 
   return (
@@ -48,6 +77,13 @@ export default async function AdminPage() {
       applications={applications as any}
       changelog={changelog as any}
       nhsRecords={nhsRecords}
+      currentRole={session.user.role}
+      analytics={{
+        totalEvents,
+        attendanceCount,
+        participatingStudents,
+        advisorClubIds,
+      }}
     />
   );
 }

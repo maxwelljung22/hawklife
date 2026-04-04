@@ -1,7 +1,7 @@
 // app/(app)/announcements/page.tsx
 import { prisma } from "@/lib/prisma";
 import { AnnouncementsClient } from "./announcements-client";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 
 export const metadata = { title: "Announcements" };
@@ -35,6 +35,7 @@ export default async function AnnouncementsPage() {
       joinedClubIds={Array.from(joinedClubIds)}
       userId={session.user.id}
       isAdmin={canAccessAdmin(session.user.role)}
+      canModerate={canAccessFacultyTools(session.user.role)}
     />
   );
 }

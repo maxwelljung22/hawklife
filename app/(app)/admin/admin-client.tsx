@@ -7,7 +7,7 @@ import {
   Users, Building2, FileText, Scroll,
   GraduationCap, Plus, Edit, Trash2,
   CheckCircle, XCircle, Clock, ShieldCheck,
-  BarChart3, TrendingUp, AlertTriangle,
+  BarChart3, TrendingUp, AlertTriangle, Flag,
 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +17,7 @@ import {
   updateChangelogEntry,
   deleteChangelogEntry,
   deleteClubAdmin,
+  setClubFlag,
   updateUserRole,
   assignClubLeadership,
   removeClubLeadership,
@@ -24,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import type { NhsRecord } from "@/lib/airtable";
-import { getClubLeadershipRoleLabel, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
+import { canAccessAdmin, getClubLeadershipRoleLabel, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 
 type AdminTab = "overview" | "clubs" | "users" | "applications" | "changelog" | "nhs";
 
@@ -34,6 +35,13 @@ interface Props {
   applications: any[];
   changelog: any[];
   nhsRecords: NhsRecord[];
+  currentRole: any;
+  analytics: {
+    totalEvents: number;
+    attendanceCount: number;
+    participatingStudents: number;
+    advisorClubIds: string[];
+  };
 }
 
 const TABS: { id: AdminTab; label: string; icon: any }[] = [
@@ -45,8 +53,9 @@ const TABS: { id: AdminTab; label: string; icon: any }[] = [
   { id: "nhs",           label: "NHS Data",     icon: GraduationCap},
 ];
 
-export function AdminClient({ clubs, users, applications, changelog, nhsRecords }: Props) {
+export function AdminClient({ clubs, users, applications, changelog, nhsRecords, currentRole, analytics }: Props) {
   const [tab, setTab] = useState<AdminTab>("overview");
+  const isAdmin = canAccessAdmin(currentRole);
 
   return (
     <div className="space-y-6">
@@ -56,8 +65,8 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords 
           <ShieldCheck className="h-4 w-4 text-crimson" />
         </div>
         <div>
-          <p className="text-[10.5px] font-bold uppercase tracking-[.09em] text-crimson">Administration</p>
-          <h1 className="font-display text-[28px] font-semibold text-foreground tracking-tight leading-none">Admin Panel</h1>
+          <p className="text-[10.5px] font-bold uppercase tracking-[.09em] text-crimson">{isAdmin ? "Administration" : "Faculty Oversight"}</p>
+          <h1 className="font-display text-[28px] font-semibold text-foreground tracking-tight leading-none">{isAdmin ? "Admin Panel" : "Oversight Dashboard"}</h1>
         </div>
       </div>
 
@@ -83,10 +92,10 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords 
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          {tab === "overview"     && <OverviewTab clubs={clubs} users={users} applications={applications} nhsRecords={nhsRecords} />}
-          {tab === "clubs"        && <ClubsTab clubs={clubs} />}
-          {tab === "users"        && <UsersTab users={users} clubs={clubs} />}
-          {tab === "applications" && <ApplicationsTab applications={applications} />}
+          {tab === "overview"     && <OverviewTab clubs={clubs} users={users} applications={applications} nhsRecords={nhsRecords} analytics={analytics} />}
+          {tab === "clubs"        && <ClubsTab clubs={clubs} canArchive={isAdmin} canFlag />}
+          {tab === "users"        && <UsersTab users={users} clubs={clubs} canManageUsers={isAdmin} />}
+          {tab === "applications" && <ApplicationsTab applications={applications} canReview={isAdmin} />}
           {tab === "changelog"    && <ChangelogTab entries={changelog} />}
           {tab === "nhs"          && <NhsTab records={nhsRecords} />}
         </motion.div>
@@ -96,18 +105,19 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords 
 }
 
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
-function OverviewTab({ clubs, users, applications, nhsRecords }: any) {
+function OverviewTab({ clubs, users, applications, nhsRecords, analytics }: any) {
   const activeClubs   = clubs.filter((c: any) => c.isActive).length;
   const totalMembers  = users.length;
-  const pendingApps   = applications.length;
+  const pendingApps   = applications.filter((application: any) => ["SUBMITTED", "UNDER_REVIEW"].includes(application.status)).length;
   const nhsComplete   = nhsRecords.filter((r: NhsRecord) => r.status === "complete").length;
+  const flaggedClubs = clubs.filter((club: any) => club.isFlagged).length;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: Building2,   val: activeClubs,  label: "Active Clubs",      color: "text-crimson bg-crimson/8" },
-          { icon: Users,       val: totalMembers, label: "Total Users",        color: "text-navy bg-navy/8"       },
+          { icon: Users,       val: analytics.participatingStudents, label: "Student Participation", color: "text-navy bg-navy/8"       },
           { icon: FileText,    val: pendingApps,  label: "Pending Apps",       color: "text-amber-600 bg-amber-50 dark:bg-amber-900/20" },
           { icon: GraduationCap,val: nhsComplete, label: "NHS Complete",       color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" },
         ].map(({ icon: Icon, val, label, color }) => (
@@ -124,9 +134,9 @@ function OverviewTab({ clubs, users, applications, nhsRecords }: any) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Top clubs by membership */}
         <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
-          <p className="text-[13px] font-bold text-foreground mb-4">Top Clubs by Membership</p>
+          <p className="text-[13px] font-bold text-foreground mb-4">Club activity levels</p>
           <div className="space-y-3">
-            {[...clubs].sort((a: any, b: any) => b._count.memberships - a._count.memberships).slice(0, 6).map((club: any) => (
+            {[...clubs].sort((a: any, b: any) => (b._count.posts + b._count.events) - (a._count.posts + a._count.events)).slice(0, 6).map((club: any) => (
               <div key={club.id} className="flex items-center gap-3">
                 <span className="text-lg">{club.emoji}</span>
                 <div className="flex-1 min-w-0">
@@ -134,36 +144,36 @@ function OverviewTab({ clubs, users, applications, nhsRecords }: any) {
                   <div className="h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
                     <div
                       className="h-full bg-crimson/70 rounded-full"
-                      style={{ width: `${Math.min(100, (club._count.memberships / Math.max(...clubs.map((c: any) => c._count.memberships), 1)) * 100)}%` }}
+                      style={{ width: `${Math.min(100, ((club._count.posts + club._count.events) / Math.max(...clubs.map((c: any) => c._count.posts + c._count.events), 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-[12px] font-bold text-muted-foreground">{club._count.memberships}</span>
+                <span className="text-[12px] font-bold text-muted-foreground">{club._count.posts + club._count.events}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent users */}
+        {/* Oversight stats */}
         <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
-          <p className="text-[13px] font-bold text-foreground mb-4">Recent Users</p>
-          <div className="space-y-3">
-            {users.slice(0, 6).map((user: any) => (
-              <div key={user.id} className="flex items-center gap-3">
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-navy to-crimson text-white">
-                    {user.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) ?? "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-foreground truncate">{user.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <span className={cn("text-[10.5px] px-2 py-0.5 rounded-full font-medium", getRoleBadgeClass(user.role))}>
-                  {getRoleLabel(user.role)}
-                </span>
-              </div>
-            ))}
+          <p className="text-[13px] font-bold text-foreground mb-4">Moderation & analytics</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-muted px-4 py-3">
+              <p className="text-[11px] text-muted-foreground">Events tracked</p>
+              <p className="mt-1 text-[20px] font-semibold text-foreground">{analytics.totalEvents}</p>
+            </div>
+            <div className="rounded-xl bg-muted px-4 py-3">
+              <p className="text-[11px] text-muted-foreground">Attendance records</p>
+              <p className="mt-1 text-[20px] font-semibold text-foreground">{analytics.attendanceCount}</p>
+            </div>
+            <div className="rounded-xl bg-muted px-4 py-3">
+              <p className="text-[11px] text-muted-foreground">Flagged clubs</p>
+              <p className="mt-1 text-[20px] font-semibold text-foreground">{flaggedClubs}</p>
+            </div>
+            <div className="rounded-xl bg-muted px-4 py-3">
+              <p className="text-[11px] text-muted-foreground">Total users</p>
+              <p className="mt-1 text-[20px] font-semibold text-foreground">{totalMembers}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -172,7 +182,7 @@ function OverviewTab({ clubs, users, applications, nhsRecords }: any) {
 }
 
 // ─── Clubs Tab ────────────────────────────────────────────────────────────────
-function ClubsTab({ clubs }: { clubs: any[] }) {
+function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: boolean; canFlag: boolean }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -182,6 +192,14 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
       const result = await deleteClubAdmin(clubId);
       if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
       else toast({ title: `"${clubName}" archived ✓` });
+    });
+  };
+
+  const handleFlag = (clubId: string, clubName: string, flagged: boolean) => {
+    startTransition(async () => {
+      const result = await setClubFlag(clubId, flagged, flagged ? `Flagged by faculty oversight for ${clubName}.` : "");
+      if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
+      else toast({ title: flagged ? "Club flagged" : "Club unflagged" });
     });
   };
 
@@ -206,10 +224,13 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
                     <p className="truncate text-[14px] font-semibold text-foreground">{club.name}</p>
                     {club.tagline && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-muted-foreground">{club.tagline}</p>}
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
                   <span className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", club.isActive ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" : "text-muted-foreground bg-muted")}>
                     <span className={cn("h-1.5 w-1.5 rounded-full", club.isActive ? "bg-emerald-500" : "bg-muted-foreground")} />
                     {club.isActive ? "Active" : "Archived"}
                   </span>
+                  {club.isFlagged && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">Flagged</span>}
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
@@ -223,12 +244,21 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
                   </span>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Link href={`/admin/clubs/${club.id}/edit`} className="flex-1 rounded-xl border border-border px-3 py-2 text-center text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
-                    Edit
-                  </Link>
-                  <button onClick={() => handleDelete(club.id, club.name)} disabled={pending} className="flex-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20">
-                    Archive
-                  </button>
+                  {canArchive ? (
+                    <Link href={`/admin/clubs/${club.id}/edit`} className="flex-1 rounded-xl border border-border px-3 py-2 text-center text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
+                      Edit
+                    </Link>
+                  ) : null}
+                  {canFlag && (
+                    <button onClick={() => handleFlag(club.id, club.name, !club.isFlagged)} disabled={pending} className="flex-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-900/20">
+                      {club.isFlagged ? "Unflag" : "Flag"}
+                    </button>
+                  )}
+                  {canArchive && (
+                    <button onClick={() => handleDelete(club.id, club.name)} disabled={pending} className="flex-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20">
+                      Archive
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -271,12 +301,21 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/clubs/${club.id}/edit`} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                      <Edit className="h-3.5 w-3.5" />
-                    </Link>
-                    <button onClick={() => handleDelete(club.id, club.name)} disabled={pending} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {canArchive ? (
+                      <>
+                        <Link href={`/admin/clubs/${club.id}/edit`} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                          <Edit className="h-3.5 w-3.5" />
+                        </Link>
+                        <button onClick={() => handleDelete(club.id, club.name)} disabled={pending} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-600">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    ) : null}
+                    {canFlag ? (
+                      <button onClick={() => handleFlag(club.id, club.name, !club.isFlagged)} disabled={pending} className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-muted-foreground hover:text-amber-700">
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </motion.tr>
@@ -289,10 +328,10 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
 }
 
 // ─── Users Tab ────────────────────────────────────────────────────────────────
-function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
+function UsersTab({ users, clubs, canManageUsers }: { users: any[]; clubs: any[]; canManageUsers: boolean }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
-  const [leadershipForm, setLeadershipForm] = useState<Record<string, { clubId: string; role: "OFFICER" | "PRESIDENT" }>>({});
+  const [leadershipForm, setLeadershipForm] = useState<Record<string, { clubId: string; role: "OFFICER" | "PRESIDENT" | "FACULTY_ADVISOR" }>>({});
 
   const handleRoleChange = (userId: string, newRole: string) => {
     startTransition(async () => {
@@ -349,7 +388,7 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                 <select
                   defaultValue={user.role}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  disabled={pending}
+                  disabled={pending || !canManageUsers}
                   className={cn(
                     "w-full cursor-pointer rounded-xl border-none px-3 py-2 text-[12px] font-medium outline-none",
                     getRoleBadgeClass(user.role)
@@ -360,6 +399,7 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                   <option value="ADMIN">admin</option>
                 </select>
               </div>
+              {!canManageUsers ? <p className="mt-2 text-[11px] text-muted-foreground">Faculty can monitor users, but only admins can change global roles.</p> : null}
               <div className="mt-3 rounded-xl bg-muted/50 px-3 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Club leadership</p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -370,7 +410,7 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                         <button
                           key={membership.id}
                           onClick={() => handleLeadershipRemove(user.id, membership.club.id)}
-                          disabled={pending}
+                          disabled={pending || !canManageUsers}
                           className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-muted"
                         >
                           {membership.club.emoji} {membership.club.name} · {getClubLeadershipRoleLabel(membership.role)} ×
@@ -393,15 +433,16 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                   </select>
                   <select
                     value={leadershipForm[user.id]?.role ?? "OFFICER"}
-                    onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" } }))}
+                    onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" | "FACULTY_ADVISOR" } }))}
                     className="rounded-xl border border-border bg-card px-3 py-2 text-[12px] text-foreground outline-none"
                   >
                     <option value="OFFICER">student leader</option>
                     <option value="PRESIDENT">president</option>
+                    <option value="FACULTY_ADVISOR">faculty advisor</option>
                   </select>
                   <button
                     onClick={() => handleLeadershipAssign(user.id)}
-                    disabled={pending || !leadershipForm[user.id]?.clubId}
+                    disabled={!canManageUsers || pending || !leadershipForm[user.id]?.clubId}
                     className="rounded-xl bg-crimson px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50"
                   >
                     Assign
@@ -441,7 +482,7 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                 <select
                   defaultValue={user.role}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  disabled={pending}
+                  disabled={pending || !canManageUsers}
                   className={cn(
                     "text-[11.5px] font-medium px-2 py-1 rounded-full border-none outline-none cursor-pointer",
                     getRoleBadgeClass(user.role)
@@ -464,7 +505,7 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                           <button
                             key={membership.id}
                             onClick={() => handleLeadershipRemove(user.id, membership.club.id)}
-                            disabled={pending}
+                            disabled={pending || !canManageUsers}
                             className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10.5px] text-foreground transition-colors hover:bg-card"
                           >
                             {membership.club.name} · {getClubLeadershipRoleLabel(membership.role)} ×
@@ -487,15 +528,16 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
                     </select>
                     <select
                       value={leadershipForm[user.id]?.role ?? "OFFICER"}
-                      onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" } }))}
+                      onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" | "FACULTY_ADVISOR" } }))}
                       className="rounded-xl border border-border bg-card px-3 py-2 text-[11.5px] text-foreground outline-none"
                     >
                       <option value="OFFICER">student leader</option>
                       <option value="PRESIDENT">president</option>
+                      <option value="FACULTY_ADVISOR">faculty advisor</option>
                     </select>
                     <button
                       onClick={() => handleLeadershipAssign(user.id)}
-                      disabled={pending || !leadershipForm[user.id]?.clubId}
+                      disabled={!canManageUsers || pending || !leadershipForm[user.id]?.clubId}
                       className="rounded-xl bg-crimson px-3 py-2 text-[11.5px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50"
                     >
                       Assign
@@ -513,9 +555,15 @@ function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
 }
 
 // ─── Applications Tab ─────────────────────────────────────────────────────────
-function ApplicationsTab({ applications }: { applications: any[] }) {
+function ApplicationsTab({ applications, canReview }: { applications: any[]; canReview: boolean }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
+  const counts = {
+    accepted: applications.filter((app) => app.status === "ACCEPTED").length,
+    rejected: applications.filter((app) => app.status === "REJECTED").length,
+    underReview: applications.filter((app) => app.status === "UNDER_REVIEW").length,
+    submitted: applications.filter((app) => app.status === "SUBMITTED").length,
+  };
 
   const handle = (id: string, status: string, name: string) => {
     startTransition(async () => {
@@ -536,6 +584,19 @@ function ApplicationsTab({ applications }: { applications: any[] }) {
 
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { label: "Submitted", value: counts.submitted },
+          { label: "Under review", value: counts.underReview },
+          { label: "Accepted", value: counts.accepted },
+          { label: "Rejected", value: counts.rejected },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
+            <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+            <p className="mt-1 text-[22px] font-semibold text-foreground">{stat.value}</p>
+          </div>
+        ))}
+      </div>
       {applications.map((app, i) => (
         <motion.div key={app.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.04 } }} className="bg-card border border-border rounded-2xl p-5 shadow-card">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -555,22 +616,26 @@ function ApplicationsTab({ applications }: { applications: any[] }) {
                 <p className="text-[11px] text-muted-foreground/60 mt-1">{formatRelativeTime(app.createdAt)}</p>
               </div>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row md:flex-shrink-0">
-              <button
-                onClick={() => handle(app.id, "ACCEPTED", app.applicant.name)}
-                disabled={pending}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[12.5px] font-medium hover:bg-emerald-100 transition-colors"
-              >
-                <CheckCircle className="h-3.5 w-3.5" /> Accept
-              </button>
-              <button
-                onClick={() => handle(app.id, "REJECTED", app.applicant.name)}
-                disabled={pending}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-[12.5px] font-medium hover:bg-red-100 transition-colors"
-              >
-                <XCircle className="h-3.5 w-3.5" /> Decline
-              </button>
-            </div>
+            {canReview ? (
+              <div className="flex flex-col gap-2 sm:flex-row md:flex-shrink-0">
+                <button
+                  onClick={() => handle(app.id, "ACCEPTED", app.applicant.name)}
+                  disabled={pending}
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[12.5px] font-medium hover:bg-emerald-100 transition-colors"
+                >
+                  <CheckCircle className="h-3.5 w-3.5" /> Accept
+                </button>
+                <button
+                  onClick={() => handle(app.id, "REJECTED", app.applicant.name)}
+                  disabled={pending}
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-[12.5px] font-medium hover:bg-red-100 transition-colors"
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Decline
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-muted px-3 py-2 text-[12px] text-muted-foreground">Advisor oversight only</div>
+            )}
           </div>
           {/* Show responses */}
           {Object.keys(app.responses).length > 0 && (

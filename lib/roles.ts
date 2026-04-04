@@ -19,6 +19,10 @@ export function canAccessAdmin(role?: UserRole | null) {
   return role === "ADMIN";
 }
 
+export function canAccessOversight(role?: UserRole | null) {
+  return role === "ADMIN" || role === "FACULTY";
+}
+
 export function canAccessFacultyTools(role?: UserRole | null) {
   return role === "ADMIN" || role === "FACULTY";
 }

@@ -4,9 +4,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Pin } from "lucide-react";
+import { Pin, Trash2 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { removeAnnouncement } from "./actions";
 
 interface Post {
   id: string;
@@ -23,13 +24,15 @@ interface Props {
   joinedClubIds: string[];
   userId: string;
   isAdmin: boolean;
+  canModerate: boolean;
 }
 
-export function AnnouncementsClient({ posts, joinedClubIds, isAdmin }: Props) {
+export function AnnouncementsClient({ posts, joinedClubIds, canModerate }: Props) {
   const [filter, setFilter] = useState<"all" | "mine">("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState(posts);
 
-  const displayed = filter === "all" ? posts : posts.filter((p) => joinedClubIds.length === 0 || joinedClubIds.some(() => true));
+  const displayed = filter === "all" ? items : items.filter((p) => joinedClubIds.length === 0 || joinedClubIds.some(() => true));
 
   const toggleExpand = (id: string) => {
     setExpanded((s) => {
@@ -37,6 +40,13 @@ export function AnnouncementsClient({ posts, joinedClubIds, isAdmin }: Props) {
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
+  };
+
+  const handleDelete = async (id: string) => {
+    const result = await removeAnnouncement(id);
+    if (!result?.error) {
+      setItems((current) => current.filter((post) => post.id !== id));
+    }
   };
 
   return (
@@ -123,6 +133,15 @@ export function AnnouncementsClient({ posts, joinedClubIds, isAdmin }: Props) {
                     <span className="ml-auto text-[11.5px] text-muted-foreground/60">
                       {formatRelativeTime(post.createdAt)}
                     </span>
+                    {canModerate ? (
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                        aria-label="Remove announcement"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
                   </div>
 
                   <h3 className="text-[15px] font-bold text-foreground mb-1.5">{post.title}</h3>

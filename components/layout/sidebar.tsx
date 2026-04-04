@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House, Compass, CalendarDays, Megaphone,
-  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket, X,
+  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket, X, ScanLine, PlusSquare,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { canAccessAdmin, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
+import { canAccessAdmin, canAccessOversight, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 import type { UserRole } from "@prisma/client";
 import { BrandLogo } from "./brand-logo";
 
@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard",     href: "/dashboard",     icon: <House           className="h-4 w-4" /> },
   { label: "Clubs",         href: "/clubs",         icon: <Compass         className="h-4 w-4" /> },
   { label: "Calendar",      href: "/calendar",      icon: <CalendarDays    className="h-4 w-4" /> },
+  { label: "Flex Block",    href: "/flex",          icon: <ScanLine        className="h-4 w-4" /> },
   { label: "Announcements", href: "/announcements", icon: <Megaphone       className="h-4 w-4" /> },
   { label: "Voting",        href: "/voting",         icon: <Vote            className="h-4 w-4" /> },
   { label: "Applications",  href: "/applications",  icon: <FileStack       className="h-4 w-4" /> },
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
 const ADMIN_ITEMS: NavItem[] = [
   { label: "Admin Panel", href: "/admin", icon: <ShieldCheck className="h-4 w-4" />, exact: true },
   { label: "Charters", href: "/admin/charters", icon: <Rocket className="h-4 w-4" /> },
+  { label: "Create Session", href: "/faculty/create-session", icon: <PlusSquare className="h-4 w-4" /> },
 ];
 
 export interface ShellUser {
@@ -133,12 +135,12 @@ function SidebarNavContent({
           </Link>
         ))}
 
-        {canAccessAdmin(user.role) && (
+        {canAccessOversight(user.role) && (
           <>
             <p className="text-[9.5px] font-bold tracking-[0.14em] uppercase px-3 mb-2 mt-5" style={{ color: "hsl(var(--shell-sidebar-muted))" }}>
-            Administration
+            Oversight
           </p>
-            {ADMIN_ITEMS.map((item) => (
+            {ADMIN_ITEMS.filter((item) => item.href !== "/admin/charters" || canAccessAdmin(user.role)).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

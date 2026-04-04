@@ -85,6 +85,18 @@ enum EventType {
   OTHER
 }
 
+enum AttendanceSessionType {
+  CLUB
+  STUDY_HALL
+  EVENT
+}
+
+enum AttendanceStatus {
+  JOINED
+  PRESENT
+  LATE
+}
+
 // ─── NEXTAUTH MODELS ──────────────────────────────────────────────────────────
 
 model Account {
@@ -177,6 +189,8 @@ model Club {
   gradientFrom String          @default("#0E1B2C")
   gradientTo   String          @default("#152438")
   bannerUrl    String?
+  isFlagged    Boolean         @default(false)
+  flagReason   String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
@@ -429,30 +443,47 @@ model ChangelogEntry {
 // ─── ATTENDANCE ───────────────────────────────────────────────────────────────
 
 model AttendanceSession {
-  id        String   @id @default(cuid())
-  clubId    String
-  eventId   String?
-  date      DateTime
-  qrCode    String?  @unique @default(cuid())
-  isOpen    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id              String                @id @default(cuid())
+  title           String                @default("Flex Session")
+  type            AttendanceSessionType @default(CLUB)
+  clubId          String?
+  eventId         String?
+  createdById     String                @default("")
+  hostName        String                @default("HawkLife")
+  location        String                @default("TBD")
+  capacity        Int                   @default(24)
+  date            DateTime
+  startTime       DateTime              @default(now())
+  endTime         DateTime              @default(now())
+  qrCode          String                @unique @default(cuid())
+  qrRefreshSeconds Int                  @default(45)
+  isOpen          Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
-  club    Club               @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  club    Club?              @relation(fields: [clubId], references: [id], onDelete: Cascade)
   event   Event?             @relation(fields: [eventId], references: [id])
   records AttendanceRecord[]
+
+  @@index([date, type])
+  @@index([clubId, date])
+  @@index([createdById, date])
 }
 
 model AttendanceRecord {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   sessionId String
   userId    String
-  present   Boolean  @default(true)
-  checkIn   DateTime @default(now())
+  status    AttendanceStatus @default(JOINED)
+  present   Boolean          @default(false)
+  joinedAt  DateTime         @default(now())
+  checkIn   DateTime?
 
   session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
+  @@index([userId, joinedAt])
 }
 
 // ─── NHS CACHE ────────────────────────────────────────────────────────────────
