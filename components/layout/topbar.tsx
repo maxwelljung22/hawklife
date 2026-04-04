@@ -12,6 +12,7 @@ import { MobileSidebarSheet, type ShellUser } from "./sidebar";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":     "Dashboard",
+  "/about":         "About HawkLife",
   "/clubs":         "Club Directory",
   "/calendar":      "Calendar",
   "/flex":          "Flex Block",

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House, Compass, CalendarDays, Megaphone,
-  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket, X, ScanLine, PlusSquare,
+  Vote, FileStack, Sparkles, ShieldCheck, GraduationCap, LogOut, Rocket, X, ScanLine, PlusSquare, Info,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
@@ -22,17 +22,38 @@ interface NavItem {
   exact?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard",     href: "/dashboard",     icon: <House           className="h-4 w-4" /> },
-  { label: "Clubs",         href: "/clubs",         icon: <Compass         className="h-4 w-4" /> },
-  { label: "Calendar",      href: "/calendar",      icon: <CalendarDays    className="h-4 w-4" /> },
-  { label: "Flex Block",    href: "/flex",          icon: <ScanLine        className="h-4 w-4" /> },
-  { label: "Announcements", href: "/announcements", icon: <Megaphone       className="h-4 w-4" /> },
-  { label: "Voting",        href: "/voting",         icon: <Vote            className="h-4 w-4" /> },
-  { label: "Applications",  href: "/applications",  icon: <FileStack       className="h-4 w-4" /> },
-  { label: "New Charter",   href: "/charter/apply", icon: <Rocket          className="h-4 w-4" /> },
-  { label: "What's New",    href: "/changelog",     icon: <Sparkles        className="h-4 w-4" /> },
-  { label: "NHS Hours",     href: "/nhs",           icon: <GraduationCap   className="h-4 w-4" /> },
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: "Main",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: <House className="h-4 w-4" /> },
+      { label: "Clubs", href: "/clubs", icon: <Compass className="h-4 w-4" /> },
+      { label: "Calendar", href: "/calendar", icon: <CalendarDays className="h-4 w-4" /> },
+      { label: "Flex Block", href: "/flex", icon: <ScanLine className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { label: "Announcements", href: "/announcements", icon: <Megaphone className="h-4 w-4" /> },
+      { label: "Voting", href: "/voting", icon: <Vote className="h-4 w-4" /> },
+      { label: "Applications", href: "/applications", icon: <FileStack className="h-4 w-4" /> },
+      { label: "What's New", href: "/changelog", icon: <Sparkles className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "School",
+    items: [
+      { label: "New Charter", href: "/charter/apply", icon: <Rocket className="h-4 w-4" /> },
+      { label: "NHS Hours", href: "/nhs", icon: <GraduationCap className="h-4 w-4" /> },
+      { label: "About HawkLife", href: "/about", icon: <Info className="h-4 w-4" /> },
+    ],
+  },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
@@ -61,6 +82,51 @@ function SidebarNavContent({
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   };
 
+  const renderNavItem = (item: NavItem, emphasis: "default" | "oversight" = "default") => (
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={onNavigate}
+      className={cn(
+        "relative flex items-center gap-3 rounded-2xl border px-3 py-3 text-[13.5px] font-medium transition-all duration-150 surface-hover",
+        isActive(item) ? "shadow-sm" : "hover:-translate-y-[2px]"
+      )}
+      style={
+        isActive(item)
+          ? {
+              background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.92))",
+              color: "hsl(var(--shell-sidebar-foreground))",
+              borderColor: "hsl(var(--shell-sidebar-border))",
+              boxShadow: "0 18px 36px rgba(15,23,42,0.12)",
+            }
+          : {
+              color: "hsl(var(--shell-sidebar-muted))",
+              borderColor: "transparent",
+            }
+      }
+    >
+      <span
+        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        style={{
+          background: isActive(item)
+            ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))"
+            : emphasis === "oversight"
+              ? "hsl(var(--primary) / 0.10)"
+              : "hsl(var(--muted) / 0.9)",
+          color: isActive(item) || emphasis === "oversight" ? "hsl(var(--primary))" : "currentColor",
+        }}
+      >
+        {item.icon}
+      </span>
+      <span className="flex-1">{item.label}</span>
+      {item.isNew ? (
+        <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white" style={{ background: "linear-gradient(135deg, #8B1A1A, #B7902B)" }}>
+          Fresh
+        </span>
+      ) : null}
+    </Link>
+  );
+
   return (
     <>
       {/* Ambient glow */}
@@ -88,96 +154,28 @@ function SidebarNavContent({
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex-1 overflow-y-auto px-4 py-4 space-y-1">
-        <p className="text-[9.5px] font-bold tracking-[0.14em] uppercase px-3 mb-2 mt-2" style={{ color: "hsl(var(--shell-sidebar-muted))" }}>
-          Navigation
-        </p>
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "relative flex items-center gap-3 rounded-2xl border px-3 py-3 text-[13.5px] font-medium transition-all duration-150 surface-hover",
-              isActive(item)
-                ? "shadow-sm"
-                : "hover:-translate-y-[2px]"
-            )}
-            style={
-              isActive(item)
-                ? {
-                    background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.92))",
-                    color: "hsl(var(--shell-sidebar-foreground))",
-                    borderColor: "hsl(var(--shell-sidebar-border))",
-                    boxShadow: "0 18px 36px rgba(15,23,42,0.12)",
-                  }
-                : {
-                    color: "hsl(var(--shell-sidebar-muted))",
-                    borderColor: "transparent",
-                  }
-            }
-          >
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{
-                background: isActive(item) ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))" : "hsl(var(--muted) / 0.9)",
-                color: isActive(item) ? "hsl(var(--primary))" : "currentColor",
-              }}
+      <nav className="relative z-10 flex-1 space-y-5 overflow-y-auto px-4 py-4">
+        {NAV_SECTIONS.map((section, index) => (
+          <div key={section.label} className="space-y-1.5">
+            <p
+              className={cn("px-3 text-[9.5px] font-bold uppercase tracking-[0.14em]", index === 0 ? "mt-2" : "mt-0")}
+              style={{ color: "hsl(var(--shell-sidebar-muted))" }}
             >
-              {item.icon}
-            </span>
-            <span className="flex-1">{item.label}</span>
-            {item.isNew && (
-              <span className="text-[9px] font-bold uppercase tracking-wide text-white px-1.5 py-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #8B1A1A, #B7902B)" }}>
-                Fresh
-              </span>
-            )}
-          </Link>
+              {section.label}
+            </p>
+            {section.items.map((item) => renderNavItem(item))}
+          </div>
         ))}
 
         {canAccessOversight(user.role) && (
-          <>
-            <p className="text-[9.5px] font-bold tracking-[0.14em] uppercase px-3 mb-2 mt-5" style={{ color: "hsl(var(--shell-sidebar-muted))" }}>
-            Oversight
-          </p>
-            {ADMIN_ITEMS.filter((item) => item.href !== "/admin/charters" || canAccessAdmin(user.role)).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl border px-3 py-3 text-[13.5px] font-medium transition-all duration-150 surface-hover",
-                  isActive(item)
-                    ? "shadow-sm"
-                    : "hover:-translate-y-[2px]"
-                )}
-                style={
-                  isActive(item)
-                    ? {
-                        background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.92))",
-                        color: "hsl(var(--shell-sidebar-foreground))",
-                        borderColor: "hsl(var(--shell-sidebar-border))",
-                        boxShadow: "0 18px 36px rgba(15,23,42,0.12)",
-                      }
-                    : {
-                        color: "hsl(var(--shell-sidebar-muted))",
-                        borderColor: "transparent",
-                      }
-                }
-              >
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{
-                    background: isActive(item) ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))" : "hsl(var(--primary) / 0.10)",
-                    color: "hsl(var(--primary))",
-                  }}
-                >
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            ))}
-          </>
+          <div className="space-y-1.5">
+            <p className="px-3 text-[9.5px] font-bold uppercase tracking-[0.14em]" style={{ color: "hsl(var(--shell-sidebar-muted))" }}>
+              Oversight
+            </p>
+            {ADMIN_ITEMS.filter((item) => item.href !== "/admin/charters" || canAccessAdmin(user.role)).map((item) =>
+              renderNavItem(item, "oversight")
+            )}
+          </div>
         )}
       </nav>
 
