@@ -18,7 +18,7 @@ export default async function FacultyCreateSessionPage() {
   const { dayStart, dayEnd } = getFlexBlockWindow();
 
   try {
-    const [clubs, sessions] = await Promise.all([
+    const [clubs, sessions, students] = await Promise.all([
       prisma.club.findMany({
         where: { isActive: true },
         orderBy: { name: "asc" },
@@ -28,23 +28,46 @@ export default async function FacultyCreateSessionPage() {
           meetingRoom: true,
         },
       }),
-      prisma.attendanceSession.findMany({
-        where: {
-          date: {
-            gte: dayStart,
-            lt: dayEnd,
+    prisma.attendanceSession.findMany({
+      where: {
+        date: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+      },
+      orderBy: [{ type: "asc" }, { title: "asc" }],
+      include: {
+        records: {
+          orderBy: { joinedAt: "desc" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
           },
         },
-        orderBy: [{ type: "asc" }, { title: "asc" }],
-        include: {
-          records: { select: { id: true } },
-        },
-      }),
-    ]);
+      },
+    }),
+    prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+      },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    }),
+  ]);
 
     return (
       <FacultySessionManager
         clubs={clubs}
+        students={students}
         sessions={sessions.map((sessionItem) => ({
           id: sessionItem.id,
           title: sessionItem.title,
@@ -55,6 +78,14 @@ export default async function FacultyCreateSessionPage() {
           attendeeCount: sessionItem.records.length,
           hostName: sessionItem.hostName,
           isOpen: sessionItem.isOpen,
+          attendees: sessionItem.records.map((record) => ({
+            id: record.id,
+            status: record.status,
+            present: record.present,
+            joinedAt: record.joinedAt.toISOString(),
+            checkIn: record.checkIn?.toISOString() ?? null,
+            user: record.user,
+          })),
         }))}
       />
     );

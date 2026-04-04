@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { AttendanceSessionType } from "@prisma/client";
+import type { AttendanceSessionType, AttendanceStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -373,4 +373,83 @@ export async function scanIntoFlexSession(qrValue: string) {
   revalidatePath("/dashboard");
 
   return { success: true, status: nextStatus, title: session.title };
+}
+
+export async function markFlexAttendanceManually(
+  sessionId: string,
+  userId: string,
+  status: AttendanceStatus
+) {
+  const user = await requireUser();
+  if (!user) return { error: "You need to sign in first." };
+  if (!canAccessFacultyTools(user.role)) {
+    return { error: "Only faculty or admins can manually mark attendance." };
+  }
+
+  if (status !== "PRESENT" && status !== "LATE") {
+    return { error: "Choose either present or late." };
+  }
+
+  const session = await prisma.attendanceSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      title: true,
+      isOpen: true,
+    },
+  });
+
+  if (!session) return { error: "Session not found." };
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  if (!targetUser) return { error: "Student not found." };
+
+  const now = new Date();
+
+  const record = await prisma.attendanceRecord.upsert({
+    where: {
+      sessionId_userId: {
+        sessionId,
+        userId,
+      },
+    },
+    update: {
+      status,
+      present: true,
+      checkIn: now,
+    },
+    create: {
+      sessionId,
+      userId,
+      status,
+      present: true,
+      joinedAt: now,
+      checkIn: now,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/flex");
+  revalidatePath("/dashboard");
+  revalidatePath("/faculty/create-session");
+
+  return {
+    success: true,
+    record,
+    title: session.title,
+    status,
+    studentName: targetUser.name || targetUser.email || "Student",
+  };
 }

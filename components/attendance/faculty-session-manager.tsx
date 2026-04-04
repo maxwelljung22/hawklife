@@ -4,13 +4,13 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import type { AttendanceSessionType } from "@prisma/client";
-import { CalendarDays, MapPin, Plus, QrCode, Trash2, Users } from "lucide-react";
+import type { AttendanceSessionType, AttendanceStatus } from "@prisma/client";
+import { CalendarDays, CheckCircle2, Clock3, MapPin, Plus, QrCode, Search, Timer, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { createFlexSession, deleteFlexSession } from "@/app/(app)/flex/actions";
-import { FLEX_BLOCK_LABEL, getSessionTypeLabel } from "@/lib/flex-attendance";
+import { createFlexSession, deleteFlexSession, markFlexAttendanceManually } from "@/app/(app)/flex/actions";
+import { FLEX_BLOCK_LABEL, getAttendanceStatusLabel, getSessionTypeLabel } from "@/lib/flex-attendance";
 import { cn } from "@/lib/utils";
 import { QrDisplay } from "@/components/attendance/qr-display";
 
@@ -30,19 +30,39 @@ type SessionItem = {
   attendeeCount: number;
   hostName: string;
   isOpen: boolean;
+  attendees: {
+    id: string;
+    status: AttendanceStatus;
+    present: boolean;
+    joinedAt: string;
+    checkIn: string | null;
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    };
+  }[];
 };
 
 export function FacultySessionManager({
   clubs,
+  students,
   sessions,
 }: {
   clubs: ClubOption[];
+  students: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  }[];
   sessions: SessionItem[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [selectedQrSessionId, setSelectedQrSessionId] = useState<string | null>(sessions[0]?.id ?? null);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [form, setForm] = useState({
     title: "",
     type: "STUDY_HALL" as AttendanceSessionType,
@@ -57,6 +77,16 @@ export function FacultySessionManager({
   );
 
   const selectedQrSession = sessions.find((session) => session.id === selectedQrSessionId) ?? null;
+  const availableStudents = useMemo(() => {
+    const query = studentQuery.trim().toLowerCase();
+    if (!query) return students.slice(0, 10);
+
+    return students
+      .filter((student) =>
+        [student.name ?? "", student.email ?? ""].some((value) => value.toLowerCase().includes(query))
+      )
+      .slice(0, 10);
+  }, [studentQuery, students]);
 
   const handleCreate = () => {
     startTransition(async () => {
@@ -112,6 +142,50 @@ export function FacultySessionManager({
       if (selectedQrSessionId === sessionId) setSelectedQrSessionId(null);
       router.refresh();
     });
+  };
+
+  const handleManualMark = (status: AttendanceStatus, userId?: string) => {
+    if (!selectedQrSession) return;
+    const targetUserId = userId ?? selectedStudentId;
+    if (!targetUserId) {
+      toast({
+        title: "Choose a student first",
+        description: "Pick a student to mark present or late.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await markFlexAttendanceManually(selectedQrSession.id, targetUserId, status);
+      if ("error" in result) {
+        toast({
+          title: "Couldn't mark attendance",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Attendance updated",
+        description: `${result.studentName} marked ${status.toLowerCase()} for ${result.title}.`,
+      });
+      setSelectedStudentId("");
+      setStudentQuery("");
+      router.refresh();
+    });
+  };
+
+  const getStatusClass = (status: AttendanceStatus) => {
+    switch (status) {
+      case "PRESENT":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
+      case "LATE":
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
   };
 
   return (
@@ -294,12 +368,130 @@ export function FacultySessionManager({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <QrDisplay
-                  sessionId={selectedQrSession.id}
-                  title={selectedQrSession.title}
-                  subtitle={`Students can scan in for ${selectedQrSession.title} from this live code.`}
-                  typeLabel={getSessionTypeLabel(selectedQrSession.type)}
-                />
+                <div className="space-y-6">
+                  <QrDisplay
+                    sessionId={selectedQrSession.id}
+                    title={selectedQrSession.title}
+                    subtitle={`Students can scan in for ${selectedQrSession.title} from this live code.`}
+                    typeLabel={getSessionTypeLabel(selectedQrSession.type)}
+                  />
+
+                  <section className="surface-card rounded-[32px] p-5 sm:p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual attendance</p>
+                        <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Mark students manually</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Faculty and admins can manually record present or late attendance for this session.
+                        </p>
+                      </div>
+                      <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+                        {selectedQrSession.attendees.length} recorded
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+                      <div className="rounded-[28px] border border-border bg-muted/35 p-4 sm:p-5">
+                        <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          Search student
+                        </label>
+                        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border bg-background px-3">
+                          <Search className="h-4 w-4 text-muted-foreground" />
+                          <input
+                            value={studentQuery}
+                            onChange={(event) => setStudentQuery(event.target.value)}
+                            placeholder="Search by name or email"
+                            className="h-12 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+
+                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                          {availableStudents.map((student) => {
+                            const active = selectedStudentId === student.id;
+                            return (
+                              <button
+                                key={student.id}
+                                type="button"
+                                onClick={() => setSelectedStudentId(student.id)}
+                                className={cn(
+                                  "flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors",
+                                  active ? "border-[hsl(var(--primary)/0.26)] bg-[hsl(var(--primary)/0.06)]" : "border-border bg-background hover:bg-muted/50"
+                                )}
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-foreground">{student.name || "Unnamed student"}</p>
+                                  <p className="truncate text-xs text-muted-foreground">{student.email || "No email"}</p>
+                                </div>
+                                {active ? <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary))]" /> : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <Button size="lg" onClick={() => handleManualMark("PRESENT")} disabled={isPending || !selectedStudentId}>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Mark present
+                          </Button>
+                          <Button variant="secondary" size="lg" onClick={() => handleManualMark("LATE")} disabled={isPending || !selectedStudentId}>
+                            <Timer className="h-4 w-4" />
+                            Mark late
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[28px] border border-border bg-background p-4 sm:p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recorded attendees</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Joined and manually marked students for this session.</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+                          {selectedQrSession.attendees.length === 0 ? (
+                            <div className="rounded-[24px] border border-dashed border-border px-4 py-8 text-center">
+                              <p className="text-sm font-medium text-foreground">No one recorded yet</p>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Students will appear here after they join or when you mark them manually.
+                              </p>
+                            </div>
+                          ) : (
+                            selectedQrSession.attendees.map((attendee) => (
+                              <div key={attendee.id} className="rounded-[24px] border border-border bg-muted/30 p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-foreground">{attendee.user.name || "Unnamed student"}</p>
+                                    <p className="truncate text-xs text-muted-foreground">{attendee.user.email || "No email"}</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium", getStatusClass(attendee.status))}>
+                                      {getAttendanceStatusLabel(attendee.status)}
+                                    </span>
+                                    {attendee.checkIn ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                                        <Clock3 className="h-3 w-3" />
+                                        {new Date(attendee.checkIn).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <Button size="sm" onClick={() => handleManualMark("PRESENT", attendee.user.id)} disabled={isPending}>
+                                    Mark present
+                                  </Button>
+                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE", attendee.user.id)} disabled={isPending}>
+                                    Mark late
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
               </motion.div>
             ) : null}
           </AnimatePresence>
