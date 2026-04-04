@@ -69,54 +69,46 @@ const featureStories = [
   {
     label: "Flex Time",
     eyebrow: "Session flow",
-    title: "Choose the right room in seconds.",
-    description:
-      "Students see the block, check capacity, and move into the right session without guessing what is happening.",
-    stats: [
+    blurb: "Choose the right room in seconds.",
+    metrics: [
       { value: "2:05", label: "Starts" },
       { value: "18", label: "Sessions" },
       { value: "1 tap", label: "Join" },
     ],
-    highlights: ["Live capacity", "Instant join", "Clear rooms"],
+    lines: ["Live capacity", "Instant join", "Clear rooms"],
   },
   {
     label: "Clubs",
     eyebrow: "Club life",
-    title: "Every club finally has a real home.",
-    description:
-      "Announcements, resources, leadership, and events stay connected to the club itself instead of getting scattered.",
-    stats: [
+    blurb: "Every club finally has a real home.",
+    metrics: [
       { value: "12", label: "Active clubs" },
       { value: "4", label: "Posts today" },
       { value: "3", label: "Events next" },
     ],
-    highlights: ["Club updates", "Resources", "Member view"],
+    lines: ["Club updates", "Resources", "Member view"],
   },
   {
     label: "Attendance",
     eyebrow: "Verified",
-    title: "Attendance that feels immediate and real.",
-    description:
-      "QR check-in turns presence into something visible and fast, with cleaner records and less manual follow-up.",
-    stats: [
+    blurb: "Attendance that feels immediate and real.",
+    metrics: [
       { value: "QR", label: "Check-in" },
       { value: "Live", label: "Status" },
       { value: "0 lag", label: "Feedback" },
     ],
-    highlights: ["Scan quickly", "Mark late", "Track instantly"],
+    lines: ["Scan quickly", "Mark late", "Track instantly"],
   },
   {
     label: "Everything connected",
     eyebrow: "Core system",
-    title: "One system for the rhythm of the Prep.",
-    description:
-      "Clubs, calendars, attendance, and announcements flow together so the experience feels like one product, not five.",
-    stats: [
+    blurb: "One system for the rhythm of the Prep.",
+    metrics: [
       { value: "1", label: "Platform" },
       { value: "All", label: "Updates" },
       { value: "Fast", label: "Feel" },
     ],
-    highlights: ["Shared context", "Unified timeline", "Cleaner day"],
+    lines: ["Shared context", "Unified timeline", "Cleaner day"],
   },
 ] as const;
 
@@ -131,57 +123,65 @@ function UnifiedFeaturePanel({
 }) {
   const story = featureStories[index];
   const start = 0.16 + index * 0.18;
-  const activeOpacity = useTransform(progress, [start - 0.08, start, start + 0.16, start + 0.28], [0.18, 1, 1, 0.24]);
-  const titleY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 24, 0]);
-  const previewY = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 0 : 36, 0]);
-  const previewScale = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 1 : 0.98, 1]);
+  const activeOpacity = useTransform(progress, [start - 0.08, start, start + 0.16, start + 0.3], [0.14, 1, 1, 0.18]);
+  const titleY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 18, 0]);
+  const titleScale = useTransform(progress, [start - 0.08, start + 0.12], [reduceMotion ? 1 : 0.96, 1]);
+  const previewY = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 0 : 28, 0]);
+  const previewScale = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 1 : 0.94, 1]);
+  const glowOpacity = useTransform(progress, [start - 0.02, start + 0.14], [0.18, 1]);
 
   return (
     <motion.div style={{ opacity: activeOpacity }} className="contents">
       <motion.div
-        style={{ y: titleY }}
-        className="rounded-[2rem] border border-white/10 bg-white/[0.03] px-5 py-5 shadow-[0_24px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:px-6 sm:py-6"
+        style={{ y: titleY, scale: titleScale }}
+        className="flex min-h-[14rem] items-center rounded-[2rem] border border-white/8 bg-white/[0.02] px-5 py-6 shadow-[0_18px_54px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:px-7"
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">{story.eyebrow}</p>
-        <h3 className="mt-3 font-display text-[clamp(1.8rem,3.8vw,4rem)] font-semibold tracking-[-0.07em] text-white">
-          {story.label}
-        </h3>
-        <p className="mt-4 max-w-xl text-[0.98rem] leading-7 text-white/58">{story.description}</p>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
+          <h3 className="mt-4 text-balance font-display text-[clamp(2.4rem,5vw,5.6rem)] font-semibold tracking-[-0.08em] text-white">
+            {story.label}
+          </h3>
+          <p className="mt-4 max-w-[28rem] text-[0.98rem] leading-7 text-white/54">{story.blurb}</p>
+        </div>
       </motion.div>
 
       <motion.div
         style={{ y: previewY, scale: previewScale, opacity: activeOpacity }}
-        className="rounded-[2.2rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_34px_100px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:p-5"
+        className="relative overflow-hidden rounded-[2.4rem] border border-[#ffb3b8]/15 bg-[linear-gradient(135deg,rgba(112,5,17,0.98),rgba(176,18,36,0.92)_38%,rgba(230,82,92,0.82)_70%,rgba(255,143,134,0.62)_100%)] p-4 shadow-[0_36px_120px_rgba(120,8,20,0.36)] sm:p-5"
       >
-        <div className="rounded-[1.8rem] border border-white/8 bg-black/40 p-4 sm:p-5">
+        <motion.div
+          style={{ opacity: glowOpacity }}
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.14),transparent_28%)]"
+        />
+        <div className="relative rounded-[1.9rem] border border-white/12 bg-black/18 p-4 backdrop-blur-md sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">{story.eyebrow}</p>
-              <p className="mt-3 max-w-[20rem] font-display text-[1.7rem] font-semibold tracking-[-0.06em] text-white sm:text-[2rem]">
-                {story.title}
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/54">{story.eyebrow}</p>
+              <p className="mt-3 max-w-[20rem] font-display text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-0.08em] text-white">
+                {story.label}
               </p>
             </div>
-            <span className="inline-flex h-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-white/60">
+            <span className="inline-flex h-fit rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] text-white/72">
               HawkLife
             </span>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {story.stats.map((item) => (
-              <div key={item.label} className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+            {story.metrics.map((item) => (
+              <div key={item.label} className="rounded-[1.3rem] border border-white/12 bg-white/[0.08] px-4 py-4">
                 <p className="font-display text-[1.9rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/40">{item.label}</p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/52">{item.label}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-4 grid gap-3">
-            {story.highlights.map((item, itemIndex) => (
+            {story.lines.map((item, itemIndex) => (
               <motion.div
                 key={item}
                 animate={{ opacity: [0.68, 1, 0.68] }}
                 transition={{ duration: 2.2, repeat: Infinity, delay: itemIndex * 0.18 }}
-                className="rounded-[1rem] border border-white/8 bg-black/25 px-4 py-3 text-[14px] text-white/78"
+                className="rounded-[1rem] border border-white/12 bg-white/[0.08] px-4 py-3 text-[14px] text-white/82"
               >
                 {item}
               </motion.div>
@@ -279,10 +279,10 @@ function FeaturesScene() {
         <div className="max-w-md lg:sticky lg:top-24">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Core system</p>
           <h2 className="text-balance font-display text-[clamp(2.2rem,5vw,4.6rem)] font-semibold tracking-[-0.08em] text-white">
-            One reveal. Real feature previews.
+            Each feature expands into focus.
           </h2>
           <p className="mt-5 text-balance text-[clamp(1rem,2vw,1.1rem)] leading-8 text-white/58">
-            As each part of HawkLife is highlighted, the product preview shifts with it. The story and the system stay together.
+            Minimal, cinematic, and clearer. The name leads, then the preview grows around it.
           </p>
         </div>
 
