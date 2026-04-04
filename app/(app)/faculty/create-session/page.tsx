@@ -4,6 +4,8 @@ import { getSession } from "@/lib/session";
 import { getFlexBlockWindow } from "@/lib/flex-attendance";
 import { canAccessFacultyTools } from "@/lib/roles";
 import { FacultySessionManager } from "@/components/attendance/faculty-session-manager";
+import { AttendanceSetupNotice } from "@/components/attendance/attendance-setup-notice";
+import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 
 export const metadata = { title: "Create Session" };
 export const dynamic = "force-dynamic";
@@ -15,44 +17,57 @@ export default async function FacultyCreateSessionPage() {
 
   const { dayStart, dayEnd } = getFlexBlockWindow();
 
-  const [clubs, sessions] = await Promise.all([
-    prisma.club.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        meetingRoom: true,
-      },
-    }),
-    prisma.attendanceSession.findMany({
-      where: {
-        date: {
-          gte: dayStart,
-          lt: dayEnd,
+  try {
+    const [clubs, sessions] = await Promise.all([
+      prisma.club.findMany({
+        where: { isActive: true },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          meetingRoom: true,
         },
-      },
-      orderBy: [{ type: "asc" }, { title: "asc" }],
-      include: {
-        records: { select: { id: true } },
-      },
-    }),
-  ]);
+      }),
+      prisma.attendanceSession.findMany({
+        where: {
+          date: {
+            gte: dayStart,
+            lt: dayEnd,
+          },
+        },
+        orderBy: [{ type: "asc" }, { title: "asc" }],
+        include: {
+          records: { select: { id: true } },
+        },
+      }),
+    ]);
 
-  return (
-    <FacultySessionManager
-      clubs={clubs}
-      sessions={sessions.map((sessionItem) => ({
-        id: sessionItem.id,
-        title: sessionItem.title,
-        type: sessionItem.type,
-        clubId: sessionItem.clubId,
-        location: sessionItem.location,
-        capacity: sessionItem.capacity,
-        attendeeCount: sessionItem.records.length,
-        hostName: sessionItem.hostName,
-        isOpen: sessionItem.isOpen,
-      }))}
-    />
-  );
+    return (
+      <FacultySessionManager
+        clubs={clubs}
+        sessions={sessions.map((sessionItem) => ({
+          id: sessionItem.id,
+          title: sessionItem.title,
+          type: sessionItem.type,
+          clubId: sessionItem.clubId,
+          location: sessionItem.location,
+          capacity: sessionItem.capacity,
+          attendeeCount: sessionItem.records.length,
+          hostName: sessionItem.hostName,
+          isOpen: sessionItem.isOpen,
+        }))}
+      />
+    );
+  } catch (error) {
+    if (isPrismaMissingColumnError(error, "Attendance")) {
+      return (
+        <AttendanceSetupNotice
+          title="Session tools need one database update"
+          description="Faculty tools are deployed, but HawkLife still needs the newest attendance migration in production before sessions and QR codes can be managed."
+        />
+      );
+    }
+
+    throw error;
+  }
 }

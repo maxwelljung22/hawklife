@@ -13,6 +13,7 @@ function ErrorContent() {
     OAuthSignin:        "An error occurred during Google sign-in. Please try again.",
     OAuthCallback:      "Authentication callback failed. Please try again.",
     AccessDenied:       "Your account signed in, but it does not currently have permission to finish authentication.",
+    Configuration:      "HawkLife sign-in is not fully configured on this deployment yet. Check the Vercel auth environment variables and redeploy.",
     default:            "An authentication error occurred.",
   };
   const message = messages[error ?? ""] ?? messages.default;

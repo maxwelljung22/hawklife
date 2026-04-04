@@ -8,7 +8,9 @@ import type { UserRole } from "@prisma/client";
 import type { JWT } from "next-auth/jwt";
 import { getDefaultRoleForEmail, resolveRoleForUser } from "@/lib/roles";
 
-const authEnv = getAuthEnv();
+const authEnv = getAuthEnv({ strict: false });
+const googleConfigured = Boolean(authEnv.googleClientId && authEnv.googleClientSecret);
+const authSecret = authEnv.nextAuthSecret || "hawklife-fallback-secret";
 
 function isAllowedEmail(email: string): boolean {
   return getDefaultRoleForEmail(email) !== null;
@@ -21,14 +23,20 @@ type AppToken = JWT & {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  providers: [
-    Google({
-      clientId: authEnv.googleClientId,
-      clientSecret: authEnv.googleClientSecret,
-    }),
-  ],
+  providers: googleConfigured
+    ? [
+        Google({
+          clientId: authEnv.googleClientId!,
+          clientSecret: authEnv.googleClientSecret!,
+        }),
+      ]
+    : [],
+  secret: authSecret,
   callbacks: {
     async signIn({ user }) {
+      if (!googleConfigured) {
+        return "/auth/error?error=Configuration";
+      }
       if (!user.email) return false;
       if (!isAllowedEmail(user.email)) {
         return "/auth/error?error=DomainNotAllowed";

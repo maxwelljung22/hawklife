@@ -5,6 +5,8 @@ import { canManageClubAttendanceSession } from "@/lib/flex-attendance";
 import { QrDisplay } from "@/components/attendance/qr-display";
 import { Button } from "@/components/ui/button";
 import { ensureClubFlexSession } from "@/app/(app)/flex/actions";
+import { AttendanceSetupNotice } from "@/components/attendance/attendance-setup-notice";
+import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 
 export const metadata = { title: "Attendance QR" };
 export const dynamic = "force-dynamic";
@@ -49,20 +51,34 @@ export default async function ClubAttendancePage({ params }: { params: Promise<{
   const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-  const attendanceSession = await prisma.attendanceSession.findFirst({
-    where: {
-      clubId: club.id,
-      date: {
-        gte: dayStart,
-        lt: dayEnd,
+  let attendanceSession;
+  try {
+    attendanceSession = await prisma.attendanceSession.findFirst({
+      where: {
+        clubId: club.id,
+        date: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-    },
-  });
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+  } catch (error) {
+    if (isPrismaMissingColumnError(error, "Attendance")) {
+      return (
+        <AttendanceSetupNotice
+          title="Club QR display needs the latest schema"
+          description="This club attendance screen is live in code, but the database on production still needs the attendance migration before QR check-in can open."
+        />
+      );
+    }
+
+    throw error;
+  }
 
   if (!attendanceSession) {
     return <ClubAttendanceEmptyState clubId={club.id} clubName={club.name} />;

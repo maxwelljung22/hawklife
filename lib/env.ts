@@ -21,13 +21,30 @@ function requireEnv(name: string) {
   return value;
 }
 
-export function getAuthEnv() {
+function optionalEnv(name: string) {
+  const value = process.env[name];
+  return isPlaceholder(value) ? undefined : value;
+}
+
+export function getAuthEnv(options?: { strict?: boolean }) {
+  const strict = options?.strict ?? true;
+
   return {
-    googleClientId: requireEnv("GOOGLE_CLIENT_ID"),
-    googleClientSecret: requireEnv("GOOGLE_CLIENT_SECRET"),
-    nextAuthSecret: requireEnv("NEXTAUTH_SECRET"),
-    nextAuthUrl: requireEnv("NEXTAUTH_URL"),
+    googleClientId: strict ? requireEnv("GOOGLE_CLIENT_ID") : optionalEnv("GOOGLE_CLIENT_ID"),
+    googleClientSecret: strict ? requireEnv("GOOGLE_CLIENT_SECRET") : optionalEnv("GOOGLE_CLIENT_SECRET"),
+    nextAuthSecret: strict ? requireEnv("NEXTAUTH_SECRET") : optionalEnv("NEXTAUTH_SECRET"),
+    nextAuthUrl: strict ? requireEnv("NEXTAUTH_URL") : optionalEnv("NEXTAUTH_URL"),
   };
+}
+
+export function hasConfiguredAuthEnv() {
+  const authEnv = getAuthEnv({ strict: false });
+  return Boolean(
+    authEnv.googleClientId &&
+      authEnv.googleClientSecret &&
+      authEnv.nextAuthSecret &&
+      authEnv.nextAuthUrl
+  );
 }
 
 export function getDatabaseEnv() {

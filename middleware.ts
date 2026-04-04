@@ -2,8 +2,23 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED = ["/dashboard", "/clubs", "/calendar", "/announcements", "/voting", "/applications", "/changelog", "/nhs", "/profile", "/charter"];
+const PROTECTED = [
+  "/dashboard",
+  "/clubs",
+  "/calendar",
+  "/flex",
+  "/scan",
+  "/announcements",
+  "/voting",
+  "/applications",
+  "/changelog",
+  "/nhs",
+  "/profile",
+  "/charter",
+  "/club",
+];
 const ADMIN_ONLY = ["/admin", "/api/admin"];
+const FACULTY_ONLY = ["/faculty"];
 
 export default auth((req: any) => {
   const { nextUrl, auth: session } = req;
@@ -11,14 +26,19 @@ export default auth((req: any) => {
 
   const isProtected = PROTECTED.some((r) => pathname.startsWith(r));
   const isAdmin     = ADMIN_ONLY.some((r) => pathname.startsWith(r));
+  const isFaculty   = FACULTY_ONLY.some((r) => pathname.startsWith(r));
 
-  if ((isProtected || isAdmin) && !session?.user) {
+  if ((isProtected || isAdmin || isFaculty) && !session?.user) {
     const url = new URL("/auth/signin", nextUrl.origin);
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
   if (isAdmin && session?.user?.role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard?error=unauthorized", nextUrl.origin));
+  }
+
+  if (isFaculty && session?.user?.role !== "ADMIN" && session?.user?.role !== "FACULTY") {
     return NextResponse.redirect(new URL("/dashboard?error=unauthorized", nextUrl.origin));
   }
 

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessFacultyTools } from "@/lib/roles";
 import { canManageClubAttendanceSession, createQrValue } from "@/lib/flex-attendance";
+import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -16,17 +17,29 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing session id" }, { status: 400 });
   }
 
-  const attendanceSession = await prisma.attendanceSession.findUnique({
-    where: { id: sessionId },
-    select: {
-      id: true,
-      title: true,
-      clubId: true,
-      createdById: true,
-      qrCode: true,
-      qrRefreshSeconds: true,
-    },
-  });
+  let attendanceSession;
+  try {
+    attendanceSession = await prisma.attendanceSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        title: true,
+        clubId: true,
+        createdById: true,
+        qrCode: true,
+        qrRefreshSeconds: true,
+      },
+    });
+  } catch (error) {
+    if (isPrismaMissingColumnError(error, "Attendance")) {
+      return NextResponse.json(
+        { error: "The attendance schema has not been applied to this deployment yet." },
+        { status: 503 }
+      );
+    }
+
+    throw error;
+  }
 
   if (!attendanceSession) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
