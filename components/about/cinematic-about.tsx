@@ -65,68 +65,130 @@ function ProblemLine({
   );
 }
 
-function FeatureReveal({
-  feature,
+const featureStories = [
+  {
+    label: "Flex Time",
+    eyebrow: "Session flow",
+    title: "Choose the right room in seconds.",
+    description:
+      "Students see the block, check capacity, and move into the right session without guessing what is happening.",
+    stats: [
+      { value: "2:05", label: "Starts" },
+      { value: "18", label: "Sessions" },
+      { value: "1 tap", label: "Join" },
+    ],
+    highlights: ["Live capacity", "Instant join", "Clear rooms"],
+  },
+  {
+    label: "Clubs",
+    eyebrow: "Club life",
+    title: "Every club finally has a real home.",
+    description:
+      "Announcements, resources, leadership, and events stay connected to the club itself instead of getting scattered.",
+    stats: [
+      { value: "12", label: "Active clubs" },
+      { value: "4", label: "Posts today" },
+      { value: "3", label: "Events next" },
+    ],
+    highlights: ["Club updates", "Resources", "Member view"],
+  },
+  {
+    label: "Attendance",
+    eyebrow: "Verified",
+    title: "Attendance that feels immediate and real.",
+    description:
+      "QR check-in turns presence into something visible and fast, with cleaner records and less manual follow-up.",
+    stats: [
+      { value: "QR", label: "Check-in" },
+      { value: "Live", label: "Status" },
+      { value: "0 lag", label: "Feedback" },
+    ],
+    highlights: ["Scan quickly", "Mark late", "Track instantly"],
+  },
+  {
+    label: "Everything connected",
+    eyebrow: "Core system",
+    title: "One system for the rhythm of the Prep.",
+    description:
+      "Clubs, calendars, attendance, and announcements flow together so the experience feels like one product, not five.",
+    stats: [
+      { value: "1", label: "Platform" },
+      { value: "All", label: "Updates" },
+      { value: "Fast", label: "Feel" },
+    ],
+    highlights: ["Shared context", "Unified timeline", "Cleaner day"],
+  },
+] as const;
+
+function UnifiedFeaturePanel({
   index,
   progress,
   reduceMotion,
 }: {
-  feature: string;
   index: number;
   progress: MotionValue<number>;
   reduceMotion: boolean;
 }) {
-  const start = 0.22 + index * 0.14;
-  const opacity = useTransform(progress, [start - 0.08, start, start + 0.2], [0.18, 1, 1]);
-  const x = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 28, 0]);
-  const scale = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 1 : 0.985, 1]);
+  const story = featureStories[index];
+  const start = 0.16 + index * 0.18;
+  const activeOpacity = useTransform(progress, [start - 0.08, start, start + 0.16, start + 0.28], [0.18, 1, 1, 0.24]);
+  const titleY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 24, 0]);
+  const previewY = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 0 : 36, 0]);
+  const previewScale = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 1 : 0.98, 1]);
 
   return (
-    <motion.div
-      style={{ opacity, x, scale }}
-      className="rounded-[2rem] border border-white/10 bg-white/[0.03] px-5 py-5 shadow-[0_24px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:px-7 sm:py-6"
-    >
-      <p className="font-display text-[clamp(1.8rem,4vw,4.4rem)] font-semibold tracking-[-0.07em] text-white">
-        {feature}
-      </p>
-    </motion.div>
-  );
-}
+    <motion.div style={{ opacity: activeOpacity }} className="contents">
+      <motion.div
+        style={{ y: titleY }}
+        className="rounded-[2rem] border border-white/10 bg-white/[0.03] px-5 py-5 shadow-[0_24px_60px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:px-6 sm:py-6"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">{story.eyebrow}</p>
+        <h3 className="mt-3 font-display text-[clamp(1.8rem,3.8vw,4rem)] font-semibold tracking-[-0.07em] text-white">
+          {story.label}
+        </h3>
+        <p className="mt-4 max-w-xl text-[0.98rem] leading-7 text-white/58">{story.description}</p>
+      </motion.div>
 
-function ProductPreviewCard({
-  title,
-  eyebrow,
-  description,
-  detail,
-  progress,
-  range,
-  reduceMotion,
-}: {
-  title: string;
-  eyebrow: string;
-  description: string;
-  detail: string;
-  progress: MotionValue<number>;
-  range: [number, number];
-  reduceMotion: boolean;
-}) {
-  const opacity = useTransform(progress, [range[0], range[0] + 0.08, range[1]], [0.2, 1, 1]);
-  const y = useTransform(progress, [range[0], range[0] + 0.12], [reduceMotion ? 0 : 34, 0]);
-  const scale = useTransform(progress, [range[0], range[0] + 0.12], [reduceMotion ? 1 : 0.97, 1]);
+      <motion.div
+        style={{ y: previewY, scale: previewScale, opacity: activeOpacity }}
+        className="rounded-[2.2rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_34px_100px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:p-5"
+      >
+        <div className="rounded-[1.8rem] border border-white/8 bg-black/40 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">{story.eyebrow}</p>
+              <p className="mt-3 max-w-[20rem] font-display text-[1.7rem] font-semibold tracking-[-0.06em] text-white sm:text-[2rem]">
+                {story.title}
+              </p>
+            </div>
+            <span className="inline-flex h-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-white/60">
+              HawkLife
+            </span>
+          </div>
 
-  return (
-    <motion.div
-      style={{ opacity, y, scale }}
-      className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-6"
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">{eyebrow}</p>
-      <h3 className="mt-3 font-display text-[clamp(1.6rem,3vw,2.7rem)] font-semibold tracking-[-0.06em] text-white">
-        {title}
-      </h3>
-      <p className="mt-3 max-w-md text-[0.98rem] leading-7 text-white/62">{description}</p>
-      <div className="mt-6 rounded-[1.5rem] border border-white/8 bg-black/35 p-4">
-        <p className="text-[13px] text-white/78">{detail}</p>
-      </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {story.stats.map((item) => (
+              <div key={item.label} className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                <p className="font-display text-[1.9rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/40">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {story.highlights.map((item, itemIndex) => (
+              <motion.div
+                key={item}
+                animate={{ opacity: [0.68, 1, 0.68] }}
+                transition={{ duration: 2.2, repeat: Infinity, delay: itemIndex * 0.18 }}
+                className="rounded-[1rem] border border-white/8 bg-black/25 px-4 py-3 text-[14px] text-white/78"
+              >
+                {item}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -210,176 +272,30 @@ function FeaturesScene() {
   const reduceMotion = Boolean(useReducedMotion());
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const panelOpacity = useTransform(scrollYProgress, [0.1, 0.22, 0.84, 0.96], [0, 1, 1, 0]);
-  const features = ["Flex Time", "Clubs", "Attendance", "Everything connected"];
 
   return (
-    <SceneFrame sceneRef={ref} className="-mt-[16svh]">
-      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-6xl gap-10 px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-        <div className="max-w-md">
+    <SceneFrame sceneRef={ref} className="-mt-[16svh] min-h-[190svh]">
+      <motion.div style={{ opacity: panelOpacity }} className="mx-auto grid w-full max-w-7xl gap-6 px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+        <div className="max-w-md lg:sticky lg:top-24">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Core system</p>
-          <p className="text-balance text-[clamp(1rem,2vw,1.15rem)] leading-8 text-white/58">
-            One connected experience for St. Joseph&apos;s Preparatory School, designed to feel immediate instead of fragmented.
+          <h2 className="text-balance font-display text-[clamp(2.2rem,5vw,4.6rem)] font-semibold tracking-[-0.08em] text-white">
+            One reveal. Real feature previews.
+          </h2>
+          <p className="mt-5 text-balance text-[clamp(1rem,2vw,1.1rem)] leading-8 text-white/58">
+            As each part of HawkLife is highlighted, the product preview shifts with it. The story and the system stay together.
           </p>
         </div>
 
-        <div className="space-y-4 sm:space-y-5">
-          {features.map((feature, index) => (
-            <FeatureReveal
-              key={feature}
-              feature={feature}
+        <div className="grid gap-5">
+          {featureStories.map((feature, index) => (
+            <UnifiedFeaturePanel
+              key={feature.label}
               index={index}
               progress={scrollYProgress}
               reduceMotion={reduceMotion}
             />
           ))}
         </div>
-      </motion.div>
-    </SceneFrame>
-  );
-}
-
-function SystemPreviewScene() {
-  const ref = useRef<HTMLElement | null>(null);
-  const reduceMotion = Boolean(useReducedMotion());
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const opacity = useTransform(scrollYProgress, [0.08, 0.2, 0.86, 0.98], [0, 1, 1, 0]);
-  const dashboardY = useTransform(scrollYProgress, [0.16, 0.48], [reduceMotion ? 0 : 50, 0]);
-  const dashboardScale = useTransform(scrollYProgress, [0.16, 0.48], [reduceMotion ? 1 : 0.94, 1]);
-
-  return (
-    <SceneFrame sceneRef={ref} className="-mt-[14svh]">
-      <motion.div style={{ opacity }} className="mx-auto grid w-full max-w-7xl gap-8 px-6 xl:grid-cols-[1.08fr_0.92fr] xl:items-center">
-        <motion.div
-          style={{ y: dashboardY, scale: dashboardScale }}
-          className="order-2 rounded-[2.5rem] border border-white/10 bg-white/[0.035] p-4 shadow-[0_34px_120px_rgba(0,0,0,0.34)] backdrop-blur-xl xl:order-1"
-        >
-          <div className="rounded-[2rem] border border-white/8 bg-black/45 p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">Live overview</p>
-                <p className="mt-2 font-display text-[1.8rem] font-semibold tracking-[-0.06em] text-white">One view of student life</p>
-              </div>
-              <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] text-white/62">
-                HawkLife
-              </div>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="space-y-3">
-                <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/42">Today</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {[
-                      { value: "12", label: "Clubs" },
-                      { value: "4", label: "Events" },
-                      { value: "2", label: "Reminders" },
-                    ].map((item) => (
-                      <div key={item.label} className="rounded-[1.2rem] border border-white/8 bg-black/25 px-4 py-4">
-                        <p className="font-display text-[1.8rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
-                        <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/40">{item.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/42">Flow</p>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      "Club announcements land instantly.",
-                      "Calendar changes stay synced.",
-                      "Attendance lives in the same system.",
-                    ].map((line) => (
-                      <div key={line} className="rounded-[1rem] border border-white/8 bg-black/25 px-4 py-3 text-[14px] text-white/74">
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/42">Upcoming</p>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      "Robotics Meeting · 2:05 PM",
-                      "Campus Ministry Service · 2:20 PM",
-                      "Debate Prep Session · Tomorrow",
-                    ].map((line, index) => (
-                      <motion.div
-                        key={line}
-                        animate={{ opacity: [0.65, 1, 0.65] }}
-                        transition={{ duration: 2.6, repeat: Infinity, delay: index * 0.22 }}
-                        className="rounded-[1rem] border border-white/8 bg-black/25 px-4 py-3 text-[14px] text-white/78"
-                      >
-                        {line}
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/42">Student pulse</p>
-                  <p className="mt-4 font-display text-[2.6rem] font-semibold tracking-[-0.06em] text-white">Fast.</p>
-                  <p className="mt-2 text-[14px] leading-7 text-white/62">
-                    The experience is designed to feel like a product students actually want to keep open.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <div className="order-1 space-y-4 xl:order-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Feature previews</p>
-          <h2 className="max-w-xl text-balance font-display text-[clamp(2.5rem,6vw,5.3rem)] font-semibold tracking-[-0.08em] text-white">
-            Scroll through the way HawkLife feels.
-          </h2>
-          <p className="max-w-xl text-[1rem] leading-8 text-white/58">
-            Not separate pages. Not separate tools. One continuous system for clubs, attendance, calendars, and the daily rhythm of the Prep.
-          </p>
-        </div>
-      </motion.div>
-    </SceneFrame>
-  );
-}
-
-function DetailScene() {
-  const ref = useRef<HTMLElement | null>(null);
-  const reduceMotion = Boolean(useReducedMotion());
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const opacity = useTransform(scrollYProgress, [0.1, 0.2, 0.84, 0.96], [0, 1, 1, 0]);
-
-  return (
-    <SceneFrame sceneRef={ref} className="-mt-[14svh]">
-      <motion.div style={{ opacity }} className="mx-auto grid w-full max-w-7xl gap-4 px-6 lg:grid-cols-3">
-        <ProductPreviewCard
-          title="Flex Time"
-          eyebrow="Session flow"
-          description="Students see the block, join in seconds, and move through attendance without bouncing between tools."
-          detail="Join a session. See capacity. Scan in. Everything updates in one place."
-          progress={scrollYProgress}
-          range={[0.18, 0.52]}
-          reduceMotion={reduceMotion}
-        />
-        <ProductPreviewCard
-          title="Clubs"
-          eyebrow="Club life"
-          description="Announcements, resources, leadership, and events stay attached to the actual club instead of floating around the school ecosystem."
-          detail="Club pages become living spaces, not static directories."
-          progress={scrollYProgress}
-          range={[0.28, 0.62]}
-          reduceMotion={reduceMotion}
-        />
-        <ProductPreviewCard
-          title="Attendance"
-          eyebrow="Verified"
-          description="The QR system turns attendance into something visible, fast, and real, with less manual cleanup after the fact."
-          detail="Instant confirmation. Cleaner records. Better accountability."
-          progress={scrollYProgress}
-          range={[0.38, 0.72]}
-          reduceMotion={reduceMotion}
-        />
       </motion.div>
     </SceneFrame>
   );
@@ -528,8 +444,6 @@ export function CinematicAbout() {
         <ProblemScene />
         <TransitionScene />
         <FeaturesScene />
-        <SystemPreviewScene />
-        <DetailScene />
         <QrScene />
         <MobileScene />
         <ClosingScene />
