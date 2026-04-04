@@ -36,10 +36,10 @@ export function ComingSoonLock({
               {eyebrow}
             </div>
 
-            <h1 className="mt-5 text-balance text-4xl font-semibold tracking-[-0.07em] text-foreground sm:text-[3.6rem]">
+            <h1 className="mt-6 max-w-[13ch] text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.07em] text-foreground sm:text-[3.6rem] sm:leading-[1.04]">
               {title}
             </h1>
-            <p className="mt-4 max-w-xl text-balance text-sm leading-7 text-muted-foreground sm:text-[15px]">
+            <p className="mt-5 max-w-xl text-balance text-sm leading-7 text-muted-foreground sm:text-[15px]">
               {description}
             </p>
 
@@ -56,17 +56,17 @@ export function ComingSoonLock({
             </div>
           </div>
 
-          <div className="relative min-h-[320px] overflow-hidden rounded-[30px] border border-white/10 bg-[#080b12] p-5 shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_20%),radial-gradient(circle_at_80%_20%,rgba(118,80,255,0.18),transparent_24%),linear-gradient(180deg,#080b12_0%,#0d111d_100%)]" />
+          <div className="relative min-h-[320px] overflow-hidden rounded-[30px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,241,241,0.92)_100%)] p-5 shadow-[0_26px_70px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#080b12] dark:shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(176,18,36,0.10),transparent_22%),radial-gradient(circle_at_80%_20%,rgba(255,143,111,0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.66)_0%,rgba(248,241,241,0.72)_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_20%),radial-gradient(circle_at_80%_20%,rgba(118,80,255,0.18),transparent_24%),linear-gradient(180deg,#080b12_0%,#0d111d_100%)]" />
             <motion.div
               aria-hidden="true"
-              className="absolute left-1/2 top-10 h-48 w-48 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,93,115,0.38),transparent_65%)] blur-3xl"
+              className="absolute left-1/2 top-10 h-48 w-48 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,93,115,0.24),transparent_65%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(255,93,115,0.38),transparent_65%)]"
               animate={reduceMotion ? {} : { scale: [1, 1.06, 0.98, 1], opacity: [0.8, 1, 0.86, 0.8] }}
               transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
             />
 
             <div className="relative z-10 flex h-full flex-col justify-between">
-              <div className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+              <div className="flex items-center justify-between rounded-full border border-border/70 bg-background/65 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60">
                 <span>Preview locked</span>
                 <span>v4.0.0</span>
               </div>
@@ -75,18 +75,18 @@ export function ComingSoonLock({
                 <motion.div
                   animate={reduceMotion ? {} : { y: [0, -4, 0] }}
                   transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }}
-                  className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl"
+                  className="rounded-[28px] border border-border/70 bg-background/75 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.08] text-white">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.10)] text-[hsl(var(--primary))] dark:bg-white/[0.08] dark:text-white">
                       <Lock className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/64">
+                    <span className="rounded-full bg-[hsl(var(--primary)/0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--primary))] dark:bg-white/[0.08] dark:text-white/64">
                       Private preview
                     </span>
                   </div>
-                  <p className="mt-5 text-2xl font-semibold tracking-[-0.05em] text-white">Flex is cooking.</p>
-                  <p className="mt-2 text-sm leading-6 text-white/60">
+                  <p className="mt-5 text-2xl font-semibold tracking-[-0.05em] text-foreground dark:text-white">Flex is cooking.</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground dark:text-white/60">
                     We&apos;re polishing attendance, sessions, and mobile interactions before the full HawkLife v4.0.0 release.
                   </p>
                 </motion.div>
@@ -110,20 +110,20 @@ export function ComingSoonLock({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.22, delay: 0.08 + index * 0.06 }}
                       whileHover={reduceMotion ? undefined : { y: -3 }}
-                      className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4"
+                      className="rounded-[24px] border border-border/70 bg-background/68 p-4 dark:border-white/10 dark:bg-white/[0.04]"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.08] text-white/86">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.10)] text-[hsl(var(--primary))] dark:bg-white/[0.08] dark:text-white/86">
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <p className="mt-4 text-sm font-semibold tracking-[-0.03em] text-white">{item.title}</p>
-                      <p className="mt-2 text-[12.5px] leading-6 text-white/56">{item.body}</p>
+                      <p className="mt-4 text-sm font-semibold tracking-[-0.03em] text-foreground dark:text-white">{item.title}</p>
+                      <p className="mt-2 text-[12.5px] leading-6 text-muted-foreground dark:text-white/56">{item.body}</p>
                     </motion.div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/62">
-                Contact <span className="font-semibold text-white/88">maxwell.jung.2027@sjprephawks.org</span> for questions.
+              <div className="rounded-[22px] border border-border/70 bg-background/72 px-4 py-3 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/62">
+                Contact <span className="font-semibold text-foreground dark:text-white/88">maxwell.jung.2027@sjprephawks.org</span> for questions.
               </div>
             </div>
           </div>
