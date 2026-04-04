@@ -142,6 +142,71 @@ export async function createClubEvent(
   }
 }
 
+export async function updateClubEvent(
+  eventId: string,
+  data: { title: string; description?: string; location?: string; startTime: string; endTime: string }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, clubId: true },
+  });
+  if (!event?.clubId) return { error: "Event not found" };
+
+  if (!(await canManageClub(event.clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to edit events" };
+  }
+
+  try {
+    const updatedEvent = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        location: data.location?.trim() || null,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime),
+      },
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/dashboard");
+    revalidatePath("/clubs");
+    return { event: updatedEvent };
+  } catch (err) {
+    console.error("[updateClubEvent]", err);
+    return { error: "Failed to update event" };
+  }
+}
+
+export async function deleteClubEvent(eventId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, clubId: true },
+  });
+  if (!event?.clubId) return { error: "Event not found" };
+
+  if (!(await canManageClub(event.clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to delete events" };
+  }
+
+  try {
+    await prisma.event.delete({ where: { id: eventId } });
+    revalidatePath("/calendar");
+    revalidatePath("/dashboard");
+    revalidatePath("/clubs");
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteClubEvent]", err);
+    return { error: "Failed to delete event" };
+  }
+}
+
 export async function createClubResource(
   clubId: string,
   data: { name: string; url: string; description?: string; type?: "LINK" | "DOCUMENT" | "PDF" | "SPREADSHEET" | "VIDEO" | "OTHER" }
@@ -170,6 +235,66 @@ export async function createClubResource(
   } catch (err) {
     console.error("[createClubResource]", err);
     return { error: "Failed to add resource" };
+  }
+}
+
+export async function updateClubResource(
+  resourceId: string,
+  data: { name: string; url: string; description?: string; type?: "LINK" | "DOCUMENT" | "PDF" | "SPREADSHEET" | "VIDEO" | "OTHER" }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const resource = await prisma.resource.findUnique({
+    where: { id: resourceId },
+    select: { id: true, clubId: true },
+  });
+  if (!resource) return { error: "Resource not found" };
+
+  if (!(await canManageClub(resource.clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to edit resources" };
+  }
+
+  try {
+    const updatedResource = await prisma.resource.update({
+      where: { id: resourceId },
+      data: {
+        name: data.name.trim(),
+        url: data.url.trim(),
+        description: data.description?.trim() || null,
+        type: data.type ?? "LINK",
+      },
+    });
+
+    revalidatePath("/clubs");
+    return { resource: updatedResource };
+  } catch (err) {
+    console.error("[updateClubResource]", err);
+    return { error: "Failed to update resource" };
+  }
+}
+
+export async function deleteClubResource(resourceId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const resource = await prisma.resource.findUnique({
+    where: { id: resourceId },
+    select: { id: true, clubId: true },
+  });
+  if (!resource) return { error: "Resource not found" };
+
+  if (!(await canManageClub(resource.clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to delete resources" };
+  }
+
+  try {
+    await prisma.resource.delete({ where: { id: resourceId } });
+    revalidatePath("/clubs");
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteClubResource]", err);
+    return { error: "Failed to delete resource" };
   }
 }
 

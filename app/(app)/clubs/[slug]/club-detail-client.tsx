@@ -11,7 +11,19 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, Trash2,
 } from "lucide-react";
 import { joinClub, leaveClub } from "../actions";
-import { submitApplication, castVote, createPost, createClubEvent, createClubResource, updatePost, deletePost } from "./actions";
+import {
+  submitApplication,
+  castVote,
+  createPost,
+  createClubEvent,
+  createClubResource,
+  updatePost,
+  deletePost,
+  updateClubEvent,
+  deleteClubEvent,
+  updateClubResource,
+  deleteClubResource,
+} from "./actions";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -450,7 +462,16 @@ function AnnouncementsTab({ club, canManage, userId }: { club: any; canManage: b
 function EventsTab({ club, canManage }: { club: any; canManage: boolean }) {
   const [events, setEvents] = useState(club.events);
   const [creating, setCreating] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [form, setForm] = useState({
+    title: "",
+    location: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+  });
+  const [editForm, setEditForm] = useState({
     title: "",
     location: "",
     description: "",
@@ -476,6 +497,47 @@ function EventsTab({ club, canManage }: { club: any; canManage: boolean }) {
       setForm({ title: "", location: "", description: "", startTime: "", endTime: "" });
       toast({ title: "Event created ✓" });
     }
+  };
+
+  const handleStartEdit = (evt: any) => {
+    setEditingEventId(evt.id);
+    setEditForm({
+      title: evt.title ?? "",
+      location: evt.location ?? "",
+      description: evt.description ?? "",
+      startTime: evt.startTime ? new Date(evt.startTime).toISOString().slice(0, 16) : "",
+      endTime: evt.endTime ? new Date(evt.endTime).toISOString().slice(0, 16) : "",
+    });
+  };
+
+  const handleSaveEdit = async (eventId: string) => {
+    if (!editForm.title.trim() || !editForm.startTime || !editForm.endTime) return;
+    setSavingEdit(true);
+    const result = await updateClubEvent(eventId, editForm);
+    setSavingEdit(false);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    if (result?.event) {
+      setEvents((current: any[]) =>
+        current
+          .map((evt) => (evt.id === eventId ? result.event : evt))
+          .sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime))
+      );
+      setEditingEventId(null);
+      toast({ title: "Event updated ✓" });
+    }
+  };
+
+  const handleDelete = async (eventId: string) => {
+    const result = await deleteClubEvent(eventId);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    setEvents((current: any[]) => current.filter((evt) => evt.id !== eventId));
+    toast({ title: "Event deleted" });
   };
 
   return (
@@ -539,32 +601,92 @@ function EventsTab({ club, canManage }: { club: any; canManage: boolean }) {
             key={evt.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0, transition: { delay: i * 0.05 } }}
-            className="flex gap-4 items-center bg-card border border-border rounded-2xl p-4 shadow-card"
+            className="bg-card border border-border rounded-2xl p-4 shadow-card"
           >
-            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-crimson/8 flex flex-col items-center justify-center">
-              <span className="font-display text-[19px] font-semibold text-crimson leading-none">
-                {format(new Date(evt.startTime), "d")}
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wide text-crimson/60">
-                {format(new Date(evt.startTime), "MMM")}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-semibold text-foreground">{evt.title}</p>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-[11.5px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {format(new Date(evt.startTime), "h:mm a")}
-                </span>
-                {evt.location && (
-                  <span className="text-[11.5px] text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {evt.location}
-                  </span>
-                )}
+            {editingEventId === evt.id ? (
+              <div className="space-y-3">
+                <input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((current) => ({ ...current, title: e.target.value }))}
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="datetime-local"
+                    value={editForm.startTime}
+                    onChange={(e) => setEditForm((current) => ({ ...current, startTime: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                  />
+                  <input
+                    type="datetime-local"
+                    value={editForm.endTime}
+                    onChange={(e) => setEditForm((current) => ({ ...current, endTime: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                  />
+                </div>
+                <input
+                  value={editForm.location}
+                  onChange={(e) => setEditForm((current) => ({ ...current, location: e.target.value }))}
+                  placeholder="Location…"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                />
+                <textarea
+                  rows={3}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((current) => ({ ...current, description: e.target.value }))}
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingEventId(null)} className="rounded-xl border border-border px-4 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
+                    Cancel
+                  </button>
+                  <button onClick={() => handleSaveEdit(evt.id)} disabled={savingEdit} className="rounded-xl bg-crimson px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50">
+                    {savingEdit ? "Saving…" : "Save"}
+                  </button>
+                </div>
               </div>
-              {evt.description && <p className="text-[12px] text-muted-foreground mt-1 line-clamp-1">{evt.description}</p>}
-            </div>
+            ) : (
+              <div className="flex gap-4 items-center">
+                <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-crimson/8 flex flex-col items-center justify-center">
+                  <span className="font-display text-[19px] font-semibold text-crimson leading-none">
+                    {format(new Date(evt.startTime), "d")}
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-crimson/60">
+                    {format(new Date(evt.startTime), "MMM")}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold text-foreground">{evt.title}</p>
+                      <div className="mt-1 flex items-center gap-3">
+                        <span className="text-[11.5px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(evt.startTime), "h:mm a")}
+                        </span>
+                        {evt.location && (
+                          <span className="text-[11.5px] text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {evt.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleStartEdit(evt)} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Edit event">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(evt.id)} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" aria-label="Delete event">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {evt.description && <p className="mt-1 text-[12px] text-muted-foreground line-clamp-1">{evt.description}</p>}
+                </div>
+              </div>
+            )}
           </motion.div>
         ))
       )}
@@ -612,7 +734,15 @@ function ResourcesTab({ club, resources, canManage }: { club: any; resources: an
   };
   const [items, setItems] = useState(resources);
   const [creating, setCreating] = useState(false);
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [form, setForm] = useState({
+    name: "",
+    url: "",
+    description: "",
+    type: "LINK",
+  });
+  const [editForm, setEditForm] = useState({
     name: "",
     url: "",
     description: "",
@@ -635,6 +765,42 @@ function ResourcesTab({ club, resources, canManage }: { club: any; resources: an
       setForm({ name: "", url: "", description: "", type: "LINK" });
       toast({ title: "Resource added ✓" });
     }
+  };
+
+  const handleStartEdit = (resource: any) => {
+    setEditingResourceId(resource.id);
+    setEditForm({
+      name: resource.name ?? "",
+      url: resource.url ?? "",
+      description: resource.description ?? "",
+      type: resource.type ?? "LINK",
+    });
+  };
+
+  const handleSaveEdit = async (resourceId: string) => {
+    if (!editForm.name.trim() || !editForm.url.trim()) return;
+    setSavingEdit(true);
+    const result = await updateClubResource(resourceId, editForm as any);
+    setSavingEdit(false);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    if (result?.resource) {
+      setItems((current: any[]) => current.map((item) => (item.id === resourceId ? result.resource : item)));
+      setEditingResourceId(null);
+      toast({ title: "Resource updated ✓" });
+    }
+  };
+
+  const handleDelete = async (resourceId: string) => {
+    const result = await deleteClubResource(resourceId);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    setItems((current: any[]) => current.filter((item) => item.id !== resourceId));
+    toast({ title: "Resource deleted" });
   };
 
   return (
@@ -693,24 +859,75 @@ function ResourcesTab({ club, resources, canManage }: { club: any; resources: an
         </div>
       ) : (
         items.map((r: any, i: number) => (
-          <motion.a
+          <motion.div
             key={r.id}
-            href={r.url}
-            target="_blank"
-            rel="noopener noreferrer"
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0, transition: { delay: i * 0.04 } }}
-            className="flex items-center gap-3.5 bg-card border border-border rounded-xl p-3.5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+            className="bg-card border border-border rounded-xl p-3.5 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5"
           >
-            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-lg flex-shrink-0">
-              {typeIcon[r.type] ?? "📁"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13.5px] font-semibold text-foreground group-hover:text-crimson transition-colors">{r.name}</p>
-              {r.description && <p className="text-[11.5px] text-muted-foreground">{r.description}</p>}
-            </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-crimson transition-colors" />
-          </motion.a>
+            {editingResourceId === r.id ? (
+              <div className="space-y-3">
+                <input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((current) => ({ ...current, name: e.target.value }))}
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                />
+                <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+                  <input
+                    value={editForm.url}
+                    onChange={(e) => setEditForm((current) => ({ ...current, url: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                  />
+                  <select
+                    value={editForm.type}
+                    onChange={(e) => setEditForm((current) => ({ ...current, type: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card"
+                  >
+                    {Object.keys(typeIcon).map((type) => (
+                      <option key={type} value={type}>{type.toLowerCase()}</option>
+                    ))}
+                  </select>
+                </div>
+                <textarea
+                  rows={3}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((current) => ({ ...current, description: e.target.value }))}
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-[13.5px] outline-none focus:bg-card focus:ring-2 focus:ring-crimson/10"
+                />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingResourceId(null)} className="rounded-xl border border-border px-4 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted">
+                    Cancel
+                  </button>
+                  <button onClick={() => handleSaveEdit(r.id)} disabled={savingEdit} className="rounded-xl bg-crimson px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50">
+                    {savingEdit ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3.5">
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3.5 group">
+                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-lg flex-shrink-0">
+                    {typeIcon[r.type] ?? "📁"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-semibold text-foreground group-hover:text-crimson transition-colors">{r.name}</p>
+                    {r.description && <p className="text-[11.5px] text-muted-foreground">{r.description}</p>}
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50 group-hover:text-crimson transition-colors" />
+                </a>
+                {canManage && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleStartEdit(r)} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Edit resource">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(r.id)} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" aria-label="Delete resource">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
         ))
       )}
     </div>
