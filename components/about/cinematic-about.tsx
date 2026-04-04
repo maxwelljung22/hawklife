@@ -139,11 +139,11 @@ function UnifiedFeaturePanel({
   const previewX = useTransform(progress, [start - 0.04, start + 0.12], [reduceMotion ? 0 : 22, 0]);
 
   return (
-    <motion.div style={{ opacity: activeOpacity, y: cardY, scale: cardScale }} className="relative min-h-[36rem]">
+    <motion.div style={{ opacity: activeOpacity, y: cardY, scale: cardScale }} className="relative min-h-[38rem]">
       <div className="absolute inset-0 rounded-[2.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] shadow-[0_28px_90px_rgba(0,0,0,0.28)]" />
       <div className={cn("pointer-events-none absolute inset-x-0 top-0 h-44 rounded-t-[2.6rem] bg-gradient-to-r opacity-90 blur-3xl", story.accent)} />
 
-      <div className="relative grid min-h-[36rem] gap-6 overflow-hidden rounded-[2.6rem] border border-white/10 bg-black/[0.72] p-5 backdrop-blur-xl sm:p-7 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8 lg:p-8">
+      <div className="relative grid min-h-[38rem] gap-7 overflow-hidden rounded-[2.6rem] border border-white/10 bg-black/[0.72] p-5 backdrop-blur-xl sm:p-7 lg:grid-cols-[0.88fr_1.12fr] lg:gap-9 lg:p-8">
         <motion.div style={{ opacity: headerOpacity }} className="flex flex-col justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">{story.eyebrow}</p>
@@ -153,11 +153,17 @@ function UnifiedFeaturePanel({
             <p className="mt-4 max-w-[22rem] text-[0.98rem] leading-7 text-white/58">{story.blurb}</p>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
-            {story.metrics.map((item) => (
-              <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-white/[0.045] px-3 py-3 sm:px-4 sm:py-4">
-                <p className="font-display text-[1.45rem] font-semibold tracking-[-0.06em] text-white sm:text-[1.7rem]">{item.value}</p>
-                <p className="mt-1 text-[9px] uppercase tracking-[0.2em] text-white/46 sm:text-[10px]">{item.label}</p>
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {story.metrics.map((item, itemIndex) => (
+              <div
+                key={item.label}
+                className={cn(
+                  "rounded-[1.2rem] border border-white/10 bg-white/[0.045] px-4 py-4 text-center sm:text-left",
+                  itemIndex === story.metrics.length - 1 && "col-span-2 sm:col-span-1"
+                )}
+              >
+                <p className="font-display text-[1.55rem] font-semibold tracking-[-0.06em] text-white sm:text-[1.72rem]">{item.value}</p>
+                <p className="mt-1 text-[11px] tracking-[-0.01em] text-white/50">{item.label}</p>
               </div>
             ))}
           </div>
@@ -165,7 +171,7 @@ function UnifiedFeaturePanel({
 
         <motion.div style={{ opacity: previewOpacity, x: previewX }} className="relative min-w-0">
           <div className="absolute inset-0 rounded-[2.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-          <div className="relative flex h-full min-h-[18rem] flex-col rounded-[2.1rem] border border-white/10 bg-[#090909]/90 p-4 sm:p-5">
+          <div className="relative flex h-full min-h-[20rem] flex-col rounded-[2.1rem] border border-white/10 bg-[#090909]/90 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-3">
               <div className="min-w-0 pr-2">
                 <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Live preview</p>
@@ -178,7 +184,7 @@ function UnifiedFeaturePanel({
               </div>
             </div>
 
-            <div className="mt-4 flex-1 space-y-2.5 sm:space-y-3">
+            <div className="mt-4 flex-1 space-y-3">
               {story.previewItems.map((item, itemIndex) => (
                 <motion.div
                   key={item}
@@ -186,11 +192,11 @@ function UnifiedFeaturePanel({
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: itemIndex * 0.08 }}
                   viewport={{ once: true, amount: 0.55 }}
-                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-3 py-3 sm:px-4 sm:py-4"
+                  className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-3 py-3.5 sm:px-4 sm:py-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-r", story.accent)} />
-                    <span className="truncate text-[0.92rem] text-white/84 sm:text-[0.98rem]">{item}</span>
+                    <span className="text-[0.92rem] leading-6 text-white/84 sm:text-[0.98rem]">{item}</span>
                   </div>
                   <span className="shrink-0 rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-white/52 sm:px-3 sm:text-[11px]">
                     Live
