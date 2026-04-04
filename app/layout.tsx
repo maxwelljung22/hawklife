@@ -6,6 +6,11 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: { default: "HawkLife", template: "%s — HawkLife" },
   description: "St. Joseph's Preparatory School student activity platform",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+    shortcut: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
