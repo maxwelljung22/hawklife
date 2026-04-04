@@ -67,11 +67,18 @@ export function AuthCard({ state, errorMessage, onSignIn }: AuthCardProps) {
                   disabled={isLoading}
                   className="relative w-full h-[54px] rounded-2xl flex items-center justify-center gap-2.5 overflow-hidden"
                   style={{ background: "linear-gradient(135deg, #101114 0%, #1F2430 100%)", color: "#fff", border: "none", fontFamily: "var(--font-body)", fontSize: "14.5px", fontWeight: 500, cursor: isLoading ? "not-allowed" : "pointer", boxShadow: "0 1px 0 rgba(255,255,255,.06) inset, 0 12px 28px rgba(16,17,20,.20)" }}
-                  whileHover={!isLoading ? { y: -1.5, boxShadow: "0 16px 34px rgba(16,17,20,.24)" } : undefined}
+                  whileHover={!isLoading ? { y: -2, scale: 1.01, boxShadow: "0 18px 36px rgba(16,17,20,.24)" } : undefined}
                   whileTap={!isLoading ? { scale: 0.99 } : undefined}
                   aria-label="Sign in with Google"
                   aria-busy={isLoading}
                 >
+                  <motion.div
+                    aria-hidden="true"
+                    className="absolute inset-0 opacity-0"
+                    whileHover={!isLoading ? { opacity: 1 } : undefined}
+                    transition={{ duration: 0.18 }}
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent)" }}
+                  />
                   {isLoading ? (
                     <>
                       <motion.div className="w-4 h-4 border-2 rounded-full" style={{ borderColor: "rgba(255,255,255,.3)", borderTopColor: "#fff" }} animate={{ rotate: 360 }} transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }} />

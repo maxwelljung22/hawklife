@@ -5,6 +5,12 @@ import { Sparkles } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+const FEATURE_STRIP = [
+  "Club applications",
+  "Live announcements",
+  "NHS tracking",
+  "Shared calendar",
+] as const;
 
 export function HeroPanel() {
   const reduceMotion = useReducedMotion();
@@ -42,7 +48,7 @@ export function HeroPanel() {
           <BrandLogo tone="inverse" />
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/64">
             <Sparkles className="h-3 w-3" />
-            St. Joseph&apos;s Preparatory School
+            Built for The Prep
           </div>
         </div>
 
@@ -73,18 +79,44 @@ export function HeroPanel() {
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0, transition: { duration: 0.62, ease: EASE_OUT, delay: 0.24 } }}
-              className="mt-8 max-w-[520px] rounded-[30px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-xl"
+              className="mt-8 max-w-[560px] rounded-[30px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-xl"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">Why HawkLife</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">What you can do</p>
               <p className="mt-3 text-[28px] font-semibold tracking-[-0.06em] text-white sm:text-[34px]" style={{ fontFamily: "Satoshi, var(--font-body)" }}>
-                One place for student life.
+                Student life, finally in sync.
               </p>
-              <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                {["Club directory", "Shared schedule", "NHS tracking"].map((item) => (
-                  <div key={item} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] text-white/70">
+              <p className="mt-3 max-w-[420px] text-[13px] leading-7 text-white/52">
+                Browse clubs, track service hours, follow announcements, and keep up with everything happening across St. Joseph&apos;s Preparatory School.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {FEATURE_STRIP.map((item, index) => (
+                  <motion.div
+                    key={item}
+                    whileHover={reduceMotion ? undefined : { y: -2, scale: 1.02 }}
+                    transition={{ duration: 0.16 }}
+                    className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] text-white/74"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0, transition: { delay: 0.32 + index * 0.05, duration: 0.35, ease: EASE_OUT } }}
+                  >
                     {item}
-                  </div>
+                  </motion.div>
                 ))}
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <motion.div
+                  whileHover={reduceMotion ? undefined : { y: -3 }}
+                  className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">For students</p>
+                  <p className="mt-2 text-[13px] leading-6 text-white/72">Find your clubs, follow updates, and keep the week organized.</p>
+                </motion.div>
+                <motion.div
+                  whileHover={reduceMotion ? undefined : { y: -3 }}
+                  className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">For leaders</p>
+                  <p className="mt-2 text-[13px] leading-6 text-white/72">Manage applications, announcements, and club momentum in one place.</p>
+                </motion.div>
               </div>
             </motion.div>
         </div>
