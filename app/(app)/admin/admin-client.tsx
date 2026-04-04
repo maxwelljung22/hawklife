@@ -16,11 +16,13 @@ import {
   createChangelogEntry,
   deleteClubAdmin,
   updateUserRole,
+  assignClubLeadership,
+  removeClubLeadership,
 } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import type { NhsRecord } from "@/lib/airtable";
-import { getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
+import { getClubLeadershipRoleLabel, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 
 type AdminTab = "overview" | "clubs" | "users" | "applications" | "changelog" | "nhs";
 
@@ -81,7 +83,7 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords 
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           {tab === "overview"     && <OverviewTab clubs={clubs} users={users} applications={applications} nhsRecords={nhsRecords} />}
           {tab === "clubs"        && <ClubsTab clubs={clubs} />}
-          {tab === "users"        && <UsersTab users={users} />}
+          {tab === "users"        && <UsersTab users={users} clubs={clubs} />}
           {tab === "applications" && <ApplicationsTab applications={applications} />}
           {tab === "changelog"    && <ChangelogTab entries={changelog} />}
           {tab === "nhs"          && <NhsTab records={nhsRecords} />}
@@ -285,15 +287,34 @@ function ClubsTab({ clubs }: { clubs: any[] }) {
 }
 
 // ─── Users Tab ────────────────────────────────────────────────────────────────
-function UsersTab({ users }: { users: any[] }) {
+function UsersTab({ users, clubs }: { users: any[]; clubs: any[] }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [leadershipForm, setLeadershipForm] = useState<Record<string, { clubId: string; role: "OFFICER" | "PRESIDENT" }>>({});
 
   const handleRoleChange = (userId: string, newRole: string) => {
     startTransition(async () => {
       const result = await updateUserRole(userId, newRole as any);
       if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
       else toast({ title: "Role updated ✓" });
+    });
+  };
+
+  const handleLeadershipAssign = (userId: string) => {
+    const selection = leadershipForm[userId];
+    if (!selection?.clubId) return;
+    startTransition(async () => {
+      const result = await assignClubLeadership(userId, selection.clubId, selection.role);
+      if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
+      else toast({ title: "Club leadership updated ✓" });
+    });
+  };
+
+  const handleLeadershipRemove = (userId: string, clubId: string) => {
+    startTransition(async () => {
+      const result = await removeClubLeadership(userId, clubId);
+      if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
+      else toast({ title: "Club leadership removed ✓" });
     });
   };
 
@@ -333,10 +354,57 @@ function UsersTab({ users }: { users: any[] }) {
                   )}
                 >
                   <option value="STUDENT">student</option>
-                  <option value="STUDENT_LEADER">student leader</option>
                   <option value="FACULTY">faculty</option>
                   <option value="ADMIN">admin</option>
                 </select>
+              </div>
+              <div className="mt-3 rounded-xl bg-muted/50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Club leadership</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {user.memberships?.filter((membership: any) => ["OFFICER", "PRESIDENT", "FACULTY_ADVISOR"].includes(membership.role)).length ? (
+                    user.memberships
+                      .filter((membership: any) => ["OFFICER", "PRESIDENT", "FACULTY_ADVISOR"].includes(membership.role))
+                      .map((membership: any) => (
+                        <button
+                          key={membership.id}
+                          onClick={() => handleLeadershipRemove(user.id, membership.club.id)}
+                          disabled={pending}
+                          className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-muted"
+                        >
+                          {membership.club.emoji} {membership.club.name} · {getClubLeadershipRoleLabel(membership.role)} ×
+                        </button>
+                      ))
+                  ) : (
+                    <span className="text-[11.5px] text-muted-foreground">No club leadership assigned</span>
+                  )}
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_132px_auto]">
+                  <select
+                    value={leadershipForm[user.id]?.clubId ?? ""}
+                    onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: e.target.value, role: current[user.id]?.role ?? "OFFICER" } }))}
+                    className="rounded-xl border border-border bg-card px-3 py-2 text-[12px] text-foreground outline-none"
+                  >
+                    <option value="">Choose club…</option>
+                    {clubs.map((club) => (
+                      <option key={club.id} value={club.id}>{club.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={leadershipForm[user.id]?.role ?? "OFFICER"}
+                    onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" } }))}
+                    className="rounded-xl border border-border bg-card px-3 py-2 text-[12px] text-foreground outline-none"
+                  >
+                    <option value="OFFICER">student leader</option>
+                    <option value="PRESIDENT">president</option>
+                  </select>
+                  <button
+                    onClick={() => handleLeadershipAssign(user.id)}
+                    disabled={pending || !leadershipForm[user.id]?.clubId}
+                    className="rounded-xl bg-crimson px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50"
+                  >
+                    Assign
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -378,14 +446,61 @@ function UsersTab({ users }: { users: any[] }) {
                   )}
                 >
                   <option value="STUDENT">student</option>
-                  <option value="STUDENT_LEADER">student leader</option>
                   <option value="FACULTY">faculty</option>
                   <option value="ADMIN">admin</option>
                 </select>
               </td>
               <td className="px-5 py-3.5 text-[13.5px] font-semibold text-foreground">{user._count.memberships}</td>
               <td className="px-5 py-3.5 text-[12px] text-muted-foreground">{formatRelativeTime(user.createdAt)}</td>
-              <td className="px-5 py-3.5" />
+              <td className="px-5 py-3.5">
+                <div className="min-w-[280px] space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {user.memberships?.filter((membership: any) => ["OFFICER", "PRESIDENT", "FACULTY_ADVISOR"].includes(membership.role)).length ? (
+                      user.memberships
+                        .filter((membership: any) => ["OFFICER", "PRESIDENT", "FACULTY_ADVISOR"].includes(membership.role))
+                        .map((membership: any) => (
+                          <button
+                            key={membership.id}
+                            onClick={() => handleLeadershipRemove(user.id, membership.club.id)}
+                            disabled={pending}
+                            className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10.5px] text-foreground transition-colors hover:bg-card"
+                          >
+                            {membership.club.name} · {getClubLeadershipRoleLabel(membership.role)} ×
+                          </button>
+                        ))
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">No club leadership</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={leadershipForm[user.id]?.clubId ?? ""}
+                      onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: e.target.value, role: current[user.id]?.role ?? "OFFICER" } }))}
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2 text-[11.5px] text-foreground outline-none"
+                    >
+                      <option value="">Choose club…</option>
+                      {clubs.map((club) => (
+                        <option key={club.id} value={club.id}>{club.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={leadershipForm[user.id]?.role ?? "OFFICER"}
+                      onChange={(e) => setLeadershipForm((current) => ({ ...current, [user.id]: { clubId: current[user.id]?.clubId ?? "", role: e.target.value as "OFFICER" | "PRESIDENT" } }))}
+                      className="rounded-xl border border-border bg-card px-3 py-2 text-[11.5px] text-foreground outline-none"
+                    >
+                      <option value="OFFICER">student leader</option>
+                      <option value="PRESIDENT">president</option>
+                    </select>
+                    <button
+                      onClick={() => handleLeadershipAssign(user.id)}
+                      disabled={pending || !leadershipForm[user.id]?.clubId}
+                      className="rounded-xl bg-crimson px-3 py-2 text-[11.5px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50"
+                    >
+                      Assign
+                    </button>
+                  </div>
+                </div>
+              </td>
             </motion.tr>
           ))}
         </tbody>

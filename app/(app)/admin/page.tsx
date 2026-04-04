@@ -20,7 +20,14 @@ export default async function AdminPage() {
     }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { memberships: { where: { status: "ACTIVE" } } } } },
+      include: {
+        _count: { select: { memberships: { where: { status: "ACTIVE" } } } },
+        memberships: {
+          where: { status: "ACTIVE" },
+          include: { club: { select: { id: true, name: true, emoji: true } } },
+          orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+        },
+      },
     }),
     prisma.application.findMany({
       where: { status: { in: ["SUBMITTED", "UNDER_REVIEW"] } },

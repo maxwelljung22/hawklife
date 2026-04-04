@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ClubDetailClient } from "./club-detail-client";
 import { getSession } from "@/lib/session";
+import { canManageClubMembershipRole } from "@/lib/roles";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -71,7 +72,7 @@ async function getClubData(slug: string, userId: string) {
     club,
     membership,
     userVotes: Object.fromEntries(userVotes.map((v) => [v.pollId, v.optionId])),
-    isLeader: membership?.role === "PRESIDENT" || membership?.role === "OFFICER",
+    isLeader: canManageClubMembershipRole(membership?.role),
   };
 }
 

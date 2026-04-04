@@ -1,4 +1,4 @@
-import type { UserRole } from "@prisma/client";
+import type { MembershipRole, UserRole } from "@prisma/client";
 
 const DEFAULT_ROLE_BY_DOMAIN: Record<string, UserRole> = {
   "sjprep.org": "FACULTY",
@@ -11,7 +11,7 @@ export function getDefaultRoleForEmail(email: string): UserRole | null {
 }
 
 export function resolveRoleForUser(email: string, currentRole?: UserRole | null): UserRole | null {
-  if (currentRole === "ADMIN" || currentRole === "STUDENT_LEADER") return currentRole;
+  if (currentRole === "ADMIN") return currentRole;
   return getDefaultRoleForEmail(email);
 }
 
@@ -21,6 +21,23 @@ export function canAccessAdmin(role?: UserRole | null) {
 
 export function canAccessFacultyTools(role?: UserRole | null) {
   return role === "ADMIN" || role === "FACULTY";
+}
+
+export function canManageClubMembershipRole(role?: MembershipRole | null) {
+  return role === "PRESIDENT" || role === "OFFICER" || role === "FACULTY_ADVISOR";
+}
+
+export function getClubLeadershipRoleLabel(role?: MembershipRole | null) {
+  switch (role) {
+    case "PRESIDENT":
+      return "President";
+    case "OFFICER":
+      return "Student Leader";
+    case "FACULTY_ADVISOR":
+      return "Faculty Advisor";
+    default:
+      return "Member";
+  }
 }
 
 export function getRoleLabel(role?: UserRole | null) {

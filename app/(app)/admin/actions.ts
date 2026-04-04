@@ -4,7 +4,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import type { UserRole } from "@prisma/client";
+import type { MembershipRole, UserRole } from "@prisma/client";
 import { canAccessAdmin } from "@/lib/roles";
 
 async function checkAdmin() {
@@ -71,6 +71,42 @@ export async function updateUserRole(userId: string, role: UserRole) {
     await checkAdmin();
     await prisma.user.update({ where: { id: userId }, data: { role } });
     revalidatePath("/admin");
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function assignClubLeadership(userId: string, clubId: string, role: MembershipRole) {
+  try {
+    await checkAdmin();
+    await prisma.membership.upsert({
+      where: { userId_clubId: { userId, clubId } },
+      update: { role, status: "ACTIVE" },
+      create: { userId, clubId, role, status: "ACTIVE" },
+    });
+    revalidatePath("/admin");
+    revalidatePath("/clubs");
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function removeClubLeadership(userId: string, clubId: string) {
+  try {
+    await checkAdmin();
+    await prisma.membership.updateMany({
+      where: {
+        userId,
+        clubId,
+        status: "ACTIVE",
+        role: { in: ["OFFICER", "PRESIDENT", "FACULTY_ADVISOR"] },
+      },
+      data: { role: "MEMBER" },
+    });
+    revalidatePath("/admin");
+    revalidatePath("/clubs");
     return { success: true };
   } catch (err: any) {
     return { error: err.message };

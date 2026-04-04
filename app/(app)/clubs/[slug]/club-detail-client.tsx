@@ -11,12 +11,13 @@ import {
   CheckCircle, XCircle, AlertCircle,
 } from "lucide-react";
 import { joinClub, leaveClub } from "../actions";
-import { submitApplication, castVote, createPost } from "./actions";
+import { submitApplication, castVote, createPost, createClubEvent, createClubResource } from "./actions";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole } from "@prisma/client";
+import { getClubLeadershipRoleLabel } from "@/lib/roles";
 
 const TABS = [
   { id: "overview",      label: "Overview" },
@@ -150,9 +151,9 @@ export function ClubDetailClient({ club, membership, userVotes, isLeader, userId
         >
           {tab === "overview"      && <OverviewTab club={club} memberCount={memberCount} />}
           {tab === "announcements" && <AnnouncementsTab club={club} canManage={canManage} userId={userId} />}
-          {tab === "events"        && <EventsTab club={club} />}
+          {tab === "events"        && <EventsTab club={club} canManage={canManage} />}
           {tab === "members"       && <MembersTab members={club.memberships} />}
-          {tab === "resources"     && <ResourcesTab resources={club.resources} />}
+          {tab === "resources"     && <ResourcesTab club={club} resources={club.resources} canManage={canManage} />}
           {tab === "applications"  && <ApplicationsTab club={club} userId={userId} />}
         </motion.div>
       </AnimatePresence>
@@ -188,7 +189,7 @@ function OverviewTab({ club, memberCount }: { club: any; memberCount: number }) 
                   </Avatar>
                   <div>
                     <p className="text-[13.5px] font-semibold text-foreground">{m.user.name}</p>
-                    <p className="text-[11.5px] text-muted-foreground capitalize">{m.role.toLowerCase().replace("_", " ")}</p>
+                    <p className="text-[11.5px] text-muted-foreground">{getClubLeadershipRoleLabel(m.role)}</p>
                   </div>
                 </div>
               ))
@@ -359,16 +360,94 @@ function AnnouncementsTab({ club, canManage, userId }: { club: any; canManage: b
 }
 
 // ─── Events Tab ───────────────────────────────────────────────────────────────
-function EventsTab({ club }: { club: any }) {
+function EventsTab({ club, canManage }: { club: any; canManage: boolean }) {
+  const [events, setEvents] = useState(club.events);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    location: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+  });
+  const { toast } = useToast();
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.startTime || !form.endTime) return;
+    setCreating(true);
+    const result = await createClubEvent(club.id, form);
+    setCreating(false);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    if (result?.event) {
+      setEvents((current: any[]) =>
+        [...current, result.event].sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime))
+      );
+      setForm({ title: "", location: "", description: "", startTime: "", endTime: "" });
+      toast({ title: "Event created ✓" });
+    }
+  };
+
   return (
     <div className="space-y-3 max-w-xl">
-      {club.events.length === 0 ? (
+      {canManage && (
+        <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-5 shadow-card space-y-3">
+          <p className="text-[13px] font-bold text-foreground">Create Event</p>
+          <input
+            value={form.title}
+            onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))}
+            placeholder="Event title…"
+            className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              type="datetime-local"
+              value={form.startTime}
+              onChange={(e) => setForm((current) => ({ ...current, startTime: e.target.value }))}
+              className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+            />
+            <input
+              type="datetime-local"
+              value={form.endTime}
+              onChange={(e) => setForm((current) => ({ ...current, endTime: e.target.value }))}
+              className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+            />
+          </div>
+          <input
+            value={form.location}
+            onChange={(e) => setForm((current) => ({ ...current, location: e.target.value }))}
+            placeholder="Location…"
+            className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+          />
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))}
+            placeholder="Add context for members…"
+            rows={3}
+            className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] resize-none outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+          />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={creating || !form.title.trim() || !form.startTime || !form.endTime}
+              className="px-5 py-2 bg-crimson text-white rounded-xl text-[13px] font-medium hover:bg-crimson/90 disabled:opacity-50 transition-all shadow-md shadow-crimson/20"
+            >
+              {creating ? "Creating…" : "Create event"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {events.length === 0 ? (
         <div className="text-center py-14">
           <div className="text-4xl opacity-30 mb-3">📅</div>
           <p className="font-display text-[17px] text-muted-foreground">No upcoming events</p>
         </div>
       ) : (
-        club.events.map((evt: any, i: number) => (
+        events.map((evt: any, i: number) => (
           <motion.div
             key={evt.id}
             initial={{ opacity: 0, x: -10 }}
@@ -425,7 +504,7 @@ function MembersTab({ members }: { members: any[] }) {
           </Avatar>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-foreground truncate">{m.user.name}</p>
-            <p className="text-[11px] text-muted-foreground capitalize">{m.role.toLowerCase().replace("_", " ")}</p>
+            <p className="text-[11px] text-muted-foreground">{getClubLeadershipRoleLabel(m.role)}</p>
           </div>
         </motion.div>
       ))}
@@ -440,19 +519,93 @@ function MembersTab({ members }: { members: any[] }) {
 }
 
 // ─── Resources Tab ────────────────────────────────────────────────────────────
-function ResourcesTab({ resources }: { resources: any[] }) {
+function ResourcesTab({ club, resources, canManage }: { club: any; resources: any[]; canManage: boolean }) {
   const typeIcon: Record<string, string> = {
     LINK: "🔗", DOCUMENT: "📄", PDF: "📋", SPREADSHEET: "📊", VIDEO: "🎬", OTHER: "📁",
   };
+  const [items, setItems] = useState(resources);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    url: "",
+    description: "",
+    type: "LINK",
+  });
+  const { toast } = useToast();
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.url.trim()) return;
+    setCreating(true);
+    const result = await createClubResource(club.id, form as any);
+    setCreating(false);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    if (result?.resource) {
+      setItems((current: any[]) => [result.resource, ...current]);
+      setForm({ name: "", url: "", description: "", type: "LINK" });
+      toast({ title: "Resource added ✓" });
+    }
+  };
+
   return (
     <div className="space-y-2.5 max-w-lg">
-      {resources.length === 0 ? (
+      {canManage && (
+        <form onSubmit={handleCreate} className="bg-card border border-border rounded-2xl p-5 shadow-card space-y-3">
+          <p className="text-[13px] font-bold text-foreground">Share Resource</p>
+          <input
+            value={form.name}
+            onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+            placeholder="Resource title…"
+            className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+          />
+          <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+            <input
+              value={form.url}
+              onChange={(e) => setForm((current) => ({ ...current, url: e.target.value }))}
+              placeholder="https://…"
+              className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+            />
+            <select
+              value={form.type}
+              onChange={(e) => setForm((current) => ({ ...current, type: e.target.value }))}
+              className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] outline-none focus:bg-card focus:border-border transition-all"
+            >
+              {Object.keys(typeIcon).map((type) => (
+                <option key={type} value={type}>
+                  {type.toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </div>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))}
+            placeholder="Why members should open this…"
+            rows={3}
+            className="w-full px-4 py-2.5 bg-muted border border-transparent rounded-xl text-[13.5px] resize-none outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-crimson/10 transition-all"
+          />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={creating || !form.name.trim() || !form.url.trim()}
+              className="px-5 py-2 bg-crimson text-white rounded-xl text-[13px] font-medium hover:bg-crimson/90 disabled:opacity-50 transition-all shadow-md shadow-crimson/20"
+            >
+              {creating ? "Adding…" : "Add resource"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {items.length === 0 ? (
         <div className="text-center py-14">
           <div className="text-4xl opacity-30 mb-3">📁</div>
           <p className="font-display text-[17px] text-muted-foreground">No resources posted</p>
         </div>
       ) : (
-        resources.map((r: any, i: number) => (
+        items.map((r: any, i: number) => (
           <motion.a
             key={r.id}
             href={r.url}

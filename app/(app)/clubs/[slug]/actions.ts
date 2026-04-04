@@ -4,22 +4,25 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
+
+async function canManageClub(clubId: string, userId: string, role: string) {
+  if (canAccessAdmin(role as any)) return true;
+
+  const membership = await prisma.membership.findUnique({
+    where: { userId_clubId: { userId, clubId } },
+    select: { role: true, status: true },
+  });
+
+  return Boolean(membership && membership.status === "ACTIVE" && canManageClubMembershipRole(membership.role));
+}
 
 export async function createPost(clubId: string, title: string, content: string) {
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };
 
-  // Check user is a leader or admin
-  const isAdmin = canAccessAdmin(session.user.role);
-  if (!isAdmin) {
-    const membership = await prisma.membership.findUnique({
-      where: { userId_clubId: { userId: session.user.id, clubId } },
-      select: { role: true, status: true },
-    });
-    if (!membership || membership.status !== "ACTIVE" || !["PRESIDENT","OFFICER","FACULTY_ADVISOR"].includes(membership.role)) {
-      return { error: "You must be a club leader to post announcements" };
-    }
+  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to post announcements" };
   }
 
   try {
@@ -51,6 +54,70 @@ export async function createPost(clubId: string, title: string, content: string)
   } catch (err) {
     console.error("[createPost]", err);
     return { error: "Failed to post announcement" };
+  }
+}
+
+export async function createClubEvent(
+  clubId: string,
+  data: { title: string; description?: string; location?: string; startTime: string; endTime: string }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to create events" };
+  }
+
+  try {
+    const event = await prisma.event.create({
+      data: {
+        clubId,
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        location: data.location?.trim() || null,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime),
+      },
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/dashboard");
+    revalidatePath("/clubs");
+    return { event };
+  } catch (err) {
+    console.error("[createClubEvent]", err);
+    return { error: "Failed to create event" };
+  }
+}
+
+export async function createClubResource(
+  clubId: string,
+  data: { name: string; url: string; description?: string; type?: "LINK" | "DOCUMENT" | "PDF" | "SPREADSHEET" | "VIDEO" | "OTHER" }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to add resources" };
+  }
+
+  try {
+    const resource = await prisma.resource.create({
+      data: {
+        clubId,
+        uploaderId: session.user.id,
+        name: data.name.trim(),
+        url: data.url.trim(),
+        description: data.description?.trim() || null,
+        type: data.type ?? "LINK",
+      },
+    });
+
+    revalidatePath("/clubs");
+    return { resource };
+  } catch (err) {
+    console.error("[createClubResource]", err);
+    return { error: "Failed to add resource" };
   }
 }
 
