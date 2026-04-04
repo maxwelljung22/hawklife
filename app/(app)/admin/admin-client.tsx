@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   updateApplicationStatus,
   createChangelogEntry,
+  updateChangelogEntry,
+  deleteChangelogEntry,
   deleteClubAdmin,
   updateUserRole,
   assignClubLeadership,
@@ -592,6 +594,9 @@ function ChangelogTab({ entries }: { entries: any[] }) {
   const [form, setForm] = useState({ title: "", content: "", type: "FEATURE", isFeatured: false });
   const [submitting, setSubmitting] = useState(false);
   const [localEntries, setLocalEntries] = useState(entries);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", content: "", type: "FEATURE", isFeatured: false });
+  const [savingEdit, setSavingEdit] = useState(false);
   const { toast } = useToast();
 
   const TYPES = ["FEATURE", "IMPROVEMENT", "BUG_FIX", "CLUB_UPDATE", "ANNOUNCEMENT"];
@@ -608,6 +613,41 @@ function ChangelogTab({ entries }: { entries: any[] }) {
       setForm({ title: "", content: "", type: "FEATURE", isFeatured: false });
       toast({ title: "Changelog entry published ✓" });
     }
+  };
+
+  const handleStartEdit = (entry: any) => {
+    setEditingId(entry.id);
+    setEditForm({
+      title: entry.title,
+      content: entry.content,
+      type: entry.type,
+      isFeatured: entry.isFeatured,
+    });
+  };
+
+  const handleSaveEdit = async (entryId: string) => {
+    setSavingEdit(true);
+    const result = await updateChangelogEntry(entryId, editForm);
+    setSavingEdit(false);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    if (result?.entry) {
+      setLocalEntries((current: any[]) => current.map((entry) => (entry.id === entryId ? result.entry : entry)));
+      setEditingId(null);
+      toast({ title: "Changelog updated ✓" });
+    }
+  };
+
+  const handleDelete = async (entryId: string) => {
+    const result = await deleteChangelogEntry(entryId);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    setLocalEntries((current: any[]) => current.filter((entry) => entry.id !== entryId));
+    toast({ title: "Changelog deleted" });
   };
 
   return (
@@ -646,16 +686,81 @@ function ChangelogTab({ entries }: { entries: any[] }) {
       <div className="space-y-3">
         {localEntries.map((entry, i) => (
           <div key={entry.id} className="bg-card border border-border rounded-2xl p-5 shadow-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[.07em] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{entry.type.replace("_", " ")}</span>
-                  {entry.isFeatured && <span className="text-[10px] font-bold uppercase tracking-[.06em] px-2 py-0.5 rounded-full bg-crimson/10 text-crimson">Featured</span>}
+            {editingId === entry.id ? (
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((current) => ({ ...current, title: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-3.5 py-2.5 text-[13.5px] outline-none focus:bg-card"
+                  />
+                  <select
+                    value={editForm.type}
+                    onChange={(e) => setEditForm((current) => ({ ...current, type: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-muted px-3.5 py-2.5 text-[13.5px] outline-none focus:bg-card"
+                  >
+                    {TYPES.map((t) => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+                  </select>
                 </div>
-                <p className="text-[14px] font-bold text-foreground">{entry.title}</p>
-                <p className="text-[12px] text-muted-foreground mt-0.5">{formatRelativeTime(entry.publishedAt)}</p>
+                <textarea
+                  rows={4}
+                  value={editForm.content}
+                  onChange={(e) => setEditForm((current) => ({ ...current, content: e.target.value }))}
+                  className="w-full rounded-xl border border-border bg-muted px-3.5 py-2.5 text-[13.5px] outline-none focus:bg-card"
+                />
+                <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={editForm.isFeatured}
+                    onChange={(e) => setEditForm((current) => ({ ...current, isFeatured: e.target.checked }))}
+                    className="accent-crimson"
+                  />
+                  Feature on dashboard
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="rounded-xl border border-border px-4 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSaveEdit(entry.id)}
+                    disabled={savingEdit}
+                    className="rounded-xl bg-crimson px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-crimson/90 disabled:opacity-50"
+                  >
+                    {savingEdit ? "Saving…" : "Save"}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[.07em] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{entry.type.replace("_", " ")}</span>
+                    {entry.isFeatured && <span className="text-[10px] font-bold uppercase tracking-[.06em] px-2 py-0.5 rounded-full bg-crimson/10 text-crimson">Featured</span>}
+                  </div>
+                  <p className="text-[14px] font-bold text-foreground">{entry.title}</p>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">{formatRelativeTime(entry.publishedAt)}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleStartEdit(entry)}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Edit changelog entry"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                    aria-label="Delete changelog entry"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
