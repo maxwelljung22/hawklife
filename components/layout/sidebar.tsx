@@ -110,10 +110,10 @@ function SidebarNavContent({
             style={
               isActive(item)
                 ? {
-                    background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.88))",
+                    background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.92))",
                     color: "hsl(var(--shell-sidebar-foreground))",
                     borderColor: "hsl(var(--shell-sidebar-border))",
-                    boxShadow: "0 20px 40px rgba(2,6,23,0.22)",
+                    boxShadow: "0 18px 36px rgba(15,23,42,0.12)",
                   }
                 : {
                     color: "hsl(var(--shell-sidebar-muted))",
@@ -124,8 +124,8 @@ function SidebarNavContent({
             <span
               className="flex h-9 w-9 items-center justify-center rounded-xl"
               style={{
-                background: isActive(item) ? "linear-gradient(135deg, rgba(139,26,26,.18), rgba(183,144,43,.16))" : "rgba(255,255,255,.06)",
-                color: isActive(item) ? "#f3c07a" : "currentColor",
+                background: isActive(item) ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))" : "hsl(var(--muted) / 0.9)",
+                color: isActive(item) ? "hsl(var(--primary))" : "currentColor",
               }}
             >
               {item.icon}
@@ -158,10 +158,10 @@ function SidebarNavContent({
                 style={
                   isActive(item)
                     ? {
-                        background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.88))",
+                        background: "linear-gradient(180deg, hsl(var(--shell-sidebar-active)), hsl(var(--shell-sidebar-active) / 0.92))",
                         color: "hsl(var(--shell-sidebar-foreground))",
                         borderColor: "hsl(var(--shell-sidebar-border))",
-                        boxShadow: "0 20px 40px rgba(2,6,23,0.22)",
+                        boxShadow: "0 18px 36px rgba(15,23,42,0.12)",
                       }
                     : {
                         color: "hsl(var(--shell-sidebar-muted))",
@@ -171,9 +171,9 @@ function SidebarNavContent({
               >
                 <span
                   className="flex h-9 w-9 items-center justify-center rounded-xl"
-                  style={{
-                    background: isActive(item) ? "linear-gradient(135deg, rgba(139,26,26,.18), rgba(183,144,43,.16))" : "rgba(139,26,26,.12)",
-                    color: isActive(item) ? "#f3c07a" : "#d96565",
+                style={{
+                    background: isActive(item) ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))" : "hsl(var(--primary) / 0.10)",
+                    color: "hsl(var(--primary))",
                   }}
                 >
                   {item.icon}
@@ -187,7 +187,7 @@ function SidebarNavContent({
 
       {/* User footer */}
       <div className="relative z-10 px-4 py-4 border-t" style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}>
-        <div className="group flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 transition-colors" style={{ background: "rgba(255,255,255,.04)", borderColor: "rgba(255,255,255,.06)" }}>
+        <div className="group flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 transition-colors" style={{ background: "hsl(var(--muted) / 0.6)", borderColor: "hsl(var(--shell-sidebar-border))" }}>
           <Avatar className="h-[30px] w-[30px] flex-shrink-0">
             <AvatarImage src={user.image ?? undefined} />
             <AvatarFallback className="text-xs font-bold text-white" style={{ background: "linear-gradient(135deg, #B8952E, #A31212)" }}>

@@ -36,7 +36,7 @@ export function BrandLogo({ href = "/dashboard", compact = false, tone = "defaul
         </div>
         {!compact ? (
           <p className={cn("text-[10px] font-semibold uppercase tracking-[0.18em]", inverse ? "text-white/45" : "text-neutral-500 dark:text-white/45")}>
-            St. Joseph&apos;s Preparatory
+            St. Joseph&apos;s Preparatory School
           </p>
         ) : null}
       </div>

@@ -17,7 +17,7 @@ function SignInContent() {
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
-        className="w-full max-w-[420px]"
+        className="w-full max-w-[430px]"
       >
         <div className="mb-6 text-center sm:mb-8">
           <div className="mb-5 flex justify-center">

@@ -13,7 +13,7 @@ const PREVIEW_CARDS = [
     body: "Discover clubs, compare commitments, and find your people fast.",
     icon: LayoutGrid,
     accent: "from-[#ff8f52] via-[#ff4d7a] to-[#8a2eff]",
-    className: "lg:absolute lg:left-0 lg:top-24 lg:w-[280px] lg:-rotate-[7deg]",
+    className: "2xl:absolute 2xl:left-0 2xl:top-24 2xl:w-[280px] 2xl:-rotate-[7deg]",
   },
   {
     title: "Charter applications",
@@ -21,7 +21,7 @@ const PREVIEW_CARDS = [
     body: "Launch new clubs with a polished, multi-step charter workflow.",
     icon: ClipboardCheck,
     accent: "from-[#7a101e] via-[#c22c44] to-[#f08b7f]",
-    className: "lg:absolute lg:left-[14%] lg:bottom-0 lg:w-[300px] lg:rotate-[3deg]",
+    className: "2xl:absolute 2xl:left-[14%] 2xl:bottom-0 2xl:w-[300px] 2xl:rotate-[3deg]",
   },
   {
     title: "Live calendar",
@@ -29,7 +29,7 @@ const PREVIEW_CARDS = [
     body: "Meetings, events, and deadlines in one elegant planning surface.",
     icon: CalendarDays,
     accent: "from-[#182c58] via-[#3556ac] to-[#8cb9ff]",
-    className: "lg:absolute lg:right-[13%] lg:top-20 lg:w-[292px] lg:rotate-[5deg]",
+    className: "2xl:absolute 2xl:right-[13%] 2xl:top-20 2xl:w-[292px] 2xl:rotate-[5deg]",
   },
   {
     title: "Announcements",
@@ -37,7 +37,7 @@ const PREVIEW_CARDS = [
     body: "Push the updates that matter across St. Joseph's Preparatory School.",
     icon: Megaphone,
     accent: "from-[#322010] via-[#8e5d1f] to-[#f3c978]",
-    className: "lg:absolute lg:right-0 lg:bottom-6 lg:w-[280px] lg:-rotate-[4deg]",
+    className: "2xl:absolute 2xl:right-0 2xl:bottom-6 2xl:w-[280px] 2xl:-rotate-[4deg]",
   },
 ];
 
@@ -114,14 +114,14 @@ export function HeroPanel() {
             </motion.p>
           </div>
 
-          <div className="mt-10 grid gap-4 lg:mt-16 lg:block lg:min-h-[470px]">
+          <div className="mt-10 grid gap-4 xl:grid-cols-2 2xl:mt-16 2xl:block 2xl:min-h-[470px]">
             {PREVIEW_CARDS.map((card, index) => (
               <motion.div
                 key={card.title}
                 initial={{ opacity: 0, y: 26, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.65, ease: EASE_OUT, delay: 0.18 + index * 0.08 } }}
                 whileHover={reduceMotion ? undefined : { y: -6, scale: 1.01 }}
-                className={`overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] shadow-[0_28px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl ${card.className}`}
+              className={`overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] shadow-[0_28px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl ${card.className}`}
               >
                 <div className={`h-32 bg-gradient-to-br ${card.accent}`} />
                 <div className="space-y-3 p-5">
@@ -149,7 +149,7 @@ export function HeroPanel() {
             <motion.div
               initial={{ opacity: 0, y: 18, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: EASE_OUT, delay: 0.45 } }}
-              className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl lg:absolute lg:left-1/2 lg:top-36 lg:w-[360px] lg:-translate-x-1/2"
+              className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl xl:col-span-2 2xl:absolute 2xl:left-1/2 2xl:top-36 2xl:w-[360px] 2xl:-translate-x-1/2"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
