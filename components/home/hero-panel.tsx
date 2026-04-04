@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, Megaphone, Sparkles } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Megaphone } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -53,10 +53,6 @@ export function HeroPanel() {
       <div className="relative z-10 flex h-full flex-col justify-between">
         <div className="space-y-3">
           <BrandLogo tone="inverse" />
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/64">
-            <Sparkles className="h-3 w-3" />
-            St. Joseph&apos;s Preparatory School
-          </div>
         </div>
 
         <div className="my-10 max-w-[700px]">
