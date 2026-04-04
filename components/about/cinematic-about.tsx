@@ -124,70 +124,91 @@ function UnifiedFeaturePanel({
   const story = featureStories[index];
   const start = 0.16 + index * 0.18;
   const activeOpacity = useTransform(progress, [start - 0.08, start, start + 0.16, start + 0.3], [0.14, 1, 1, 0.18]);
-  const titleY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 18, 0]);
-  const titleScale = useTransform(progress, [start - 0.08, start + 0.12], [reduceMotion ? 1 : 0.96, 1]);
-  const previewY = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 0 : 28, 0]);
-  const previewScale = useTransform(progress, [start - 0.06, start + 0.12], [reduceMotion ? 1 : 0.94, 1]);
+  const cardY = useTransform(progress, [start - 0.08, start + 0.1], [reduceMotion ? 0 : 18, 0]);
+  const cardScale = useTransform(progress, [start - 0.08, start + 0.12], [reduceMotion ? 1 : 0.96, 1]);
+  const rotateY = useTransform(progress, [start, start + 0.08, start + 0.16], [0, 90, 180]);
   const glowOpacity = useTransform(progress, [start - 0.02, start + 0.14], [0.18, 1]);
+  const frontOpacity = useTransform(progress, [start, start + 0.06, start + 0.12], [1, 0.55, 0]);
+  const backOpacity = useTransform(progress, [start + 0.06, start + 0.12, start + 0.18], [0, 0.72, 1]);
 
   return (
-    <motion.div style={{ opacity: activeOpacity }} className="contents">
+    <motion.div style={{ opacity: activeOpacity, y: cardY, scale: cardScale }} className="relative h-[29rem] sm:h-[31rem]">
       <motion.div
-        style={{ y: titleY, scale: titleScale }}
-        className="flex min-h-[14rem] items-center rounded-[2rem] border border-white/8 bg-white/[0.02] px-5 py-6 shadow-[0_18px_54px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:px-7"
-      >
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
-          <h3 className="mt-4 text-balance font-display text-[clamp(2.4rem,5vw,5.6rem)] font-semibold tracking-[-0.08em] text-white">
-            {story.label}
-          </h3>
-          <p className="mt-4 max-w-[28rem] text-[0.98rem] leading-7 text-white/54">{story.blurb}</p>
-        </div>
-      </motion.div>
-
-      <motion.div
-        style={{ y: previewY, scale: previewScale, opacity: activeOpacity }}
-        className="relative overflow-hidden rounded-[2.4rem] border border-[#ffb3b8]/15 bg-[linear-gradient(135deg,rgba(112,5,17,0.98),rgba(176,18,36,0.92)_38%,rgba(230,82,92,0.82)_70%,rgba(255,143,134,0.62)_100%)] p-4 shadow-[0_36px_120px_rgba(120,8,20,0.36)] sm:p-5"
+        style={{ rotateY, transformStyle: "preserve-3d" as const }}
+        className="relative h-full w-full"
       >
         <motion.div
-          style={{ opacity: glowOpacity }}
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.14),transparent_28%)]"
-        />
-        <div className="relative rounded-[1.9rem] border border-white/12 bg-black/18 p-4 backdrop-blur-md sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/54">{story.eyebrow}</p>
-              <p className="mt-3 max-w-[20rem] font-display text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-0.08em] text-white">
-                {story.label}
-              </p>
-            </div>
-            <span className="inline-flex h-fit rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] text-white/72">
-              HawkLife
-            </span>
+          style={{ backfaceVisibility: "hidden", opacity: frontOpacity }}
+          className="absolute inset-0 flex items-end overflow-hidden rounded-[2.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-6 shadow-[0_18px_54px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-8"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,transparent,rgba(0,0,0,0.32))]" />
+          <div className="relative">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">{story.eyebrow}</p>
+            <h3 className="mt-5 max-w-[12ch] text-balance font-display text-[clamp(3rem,7vw,6.6rem)] font-semibold tracking-[-0.09em] text-white">
+              {story.label}
+            </h3>
+            <p className="mt-4 max-w-[26rem] text-[0.98rem] leading-7 text-white/52">{story.blurb}</p>
           </div>
+        </motion.div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {story.metrics.map((item) => (
-              <div key={item.label} className="rounded-[1.3rem] border border-white/12 bg-white/[0.08] px-4 py-4">
-                <p className="font-display text-[1.9rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/52">{item.label}</p>
+        <motion.div
+          style={{
+            transform: "rotateY(180deg)",
+            backfaceVisibility: "hidden",
+            opacity: backOpacity,
+          }}
+          className="absolute inset-0 overflow-hidden rounded-[2.4rem] border border-[#ffb3b8]/15 bg-[linear-gradient(135deg,rgba(112,5,17,0.98),rgba(176,18,36,0.92)_38%,rgba(230,82,92,0.84)_70%,rgba(255,143,134,0.66)_100%)] p-4 shadow-[0_36px_120px_rgba(120,8,20,0.36)] sm:p-5"
+        >
+          <motion.div
+            style={{ opacity: glowOpacity }}
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_34%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.14),transparent_30%)]"
+          />
+          <div className="relative flex h-full flex-col overflow-hidden rounded-[1.9rem] border border-white/12 bg-black/16 p-5 backdrop-blur-md sm:p-6">
+            <div className="absolute -right-14 top-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-black/20 blur-3xl" />
+
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/56">{story.eyebrow}</p>
+                <p className="mt-3 font-display text-[clamp(2.4rem,5vw,4rem)] font-semibold tracking-[-0.09em] text-white">
+                  {story.label}
+                </p>
               </div>
-            ))}
-          </div>
+              <span className="inline-flex h-fit rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] text-white/74">
+                HawkLife
+              </span>
+            </div>
 
-          <div className="mt-4 grid gap-3">
-            {story.lines.map((item, itemIndex) => (
-              <motion.div
-                key={item}
-                animate={{ opacity: [0.68, 1, 0.68] }}
-                transition={{ duration: 2.2, repeat: Infinity, delay: itemIndex * 0.18 }}
-                className="rounded-[1rem] border border-white/12 bg-white/[0.08] px-4 py-3 text-[14px] text-white/82"
-              >
-                {item}
-              </motion.div>
-            ))}
+            <div className="relative mt-6 flex-1">
+              <div className="absolute inset-x-0 top-0 h-24 rounded-[2rem] bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.05),transparent)] blur-2xl" />
+              <div className="relative flex h-full flex-col justify-between rounded-[1.7rem] border border-white/12 bg-white/[0.06] p-5">
+                <p className="max-w-[24rem] text-[1.02rem] leading-7 text-white/82">{story.blurb}</p>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {story.metrics.map((item) => (
+                    <div key={item.label} className="rounded-[1.3rem] border border-white/12 bg-white/[0.08] px-4 py-4">
+                      <p className="font-display text-[1.9rem] font-semibold tracking-[-0.06em] text-white">{item.value}</p>
+                      <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/56">{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {story.lines.map((item, itemIndex) => (
+                    <motion.span
+                      key={item}
+                      animate={{ opacity: [0.7, 1, 0.7] }}
+                      transition={{ duration: 2.1, repeat: Infinity, delay: itemIndex * 0.16 }}
+                      className="rounded-full border border-white/14 bg-white/[0.08] px-3 py-2 text-[12px] font-medium text-white/86"
+                    >
+                      {item}
+                    </motion.span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
