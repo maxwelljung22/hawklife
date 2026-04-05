@@ -3,7 +3,7 @@
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { Compass, Plus, Search, Users } from "lucide-react";
+import { ChevronRight, Plus, Search, Users } from "lucide-react";
 import type { UserRole } from "@prisma/client";
 import { joinClub, leaveClub } from "./actions";
 import { cn } from "@/lib/utils";
@@ -159,7 +159,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
         {filtered.length === 0 ? (
           <EmptyState />
         ) : (
-          <motion.div layout className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <motion.div layout className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence mode="popLayout">
               {filtered.map((club, index) => (
                 <motion.article
@@ -170,18 +170,18 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                   exit={{ opacity: 0, scale: 0.97 }}
                   whileHover={{ scale: 1.02, y: -2 }}
                   transition={{ duration: 0.18 }}
-                  className="group overflow-hidden rounded-[1.8rem] border border-border/80 bg-card shadow-[0_16px_40px_rgba(15,23,42,0.06)]"
+                  className="group overflow-hidden rounded-[1.5rem] border border-border/80 bg-card shadow-[0_12px_28px_rgba(15,23,42,0.05)]"
                 >
                   <Link href={`/clubs/${club.id}`} className="block">
                     <div
-                      className="relative h-44 overflow-hidden"
+                      className="relative h-32 overflow-hidden"
                       style={{ background: `linear-gradient(135deg, ${club.gradientFrom}, ${club.gradientTo})` }}
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_30%),linear-gradient(180deg,transparent,rgba(0,0,0,0.2))]" />
-                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-5 pb-5">
+                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-4 pb-4">
                         <div>
-                          <div className="text-[3rem] leading-none drop-shadow-[0_18px_40px_rgba(0,0,0,0.18)]">{club.emoji}</div>
-                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/78">{club.category}</p>
+                          <div className="text-[2.4rem] leading-none drop-shadow-[0_18px_40px_rgba(0,0,0,0.18)]">{club.emoji}</div>
+                          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/78">{club.category}</p>
                         </div>
                         {club.requiresApp ? (
                           <span className="rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/84">
@@ -192,14 +192,14 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                     </div>
                   </Link>
 
-                  <div className="space-y-5 p-5">
+                  <div className="space-y-4 p-4">
                     <div>
                       <Link href={`/clubs/${club.id}`} className="block">
-                        <h2 className="text-[1.2rem] font-semibold tracking-[-0.04em] text-foreground transition-colors duration-200 group-hover:text-[hsl(var(--primary))]" style={{ fontFamily: "Inter, var(--font-body)" }}>
+                        <h2 className="text-[1.05rem] font-semibold tracking-[-0.04em] text-foreground transition-colors duration-200 group-hover:text-[hsl(var(--primary))]" style={{ fontFamily: "Inter, var(--font-body)" }}>
                           {club.name}
                         </h2>
                       </Link>
-                      <p className="mt-2 line-clamp-2 text-[13.5px] leading-6 text-muted-foreground">
+                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-5.5 text-muted-foreground">
                         {club.tagline || club.description}
                       </p>
                     </div>
@@ -213,12 +213,12 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                       {club.meetingRoom ? <span className="rounded-full border border-border bg-background px-3 py-1.5">{club.meetingRoom}</span> : null}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       <button
                         onClick={() => handleMembership(club)}
                         disabled={isPending}
                         className={cn(
-                          "rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+                          "rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200",
                           club.joined
                             ? "border border-border bg-background text-foreground hover:bg-muted"
                             : "bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
@@ -226,9 +226,17 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                       >
                         {club.joined ? "Joined" : "Join Club"}
                       </button>
-                      <Link href={`/clubs/${club.id}`} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground">
-                        Open club
-                        <Compass className="h-4 w-4" />
+                      <Link
+                        href={club.joined ? `/clubs/${club.id}/workspace` : `/clubs/${club.id}`}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200",
+                          club.joined
+                            ? "border border-border bg-background text-foreground hover:bg-muted"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Open Workspace
+                        <ChevronRight className="h-4 w-4" />
                       </Link>
                     </div>
                   </div>

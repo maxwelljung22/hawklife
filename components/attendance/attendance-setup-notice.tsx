@@ -4,9 +4,13 @@ import { AlertTriangle, DatabaseZap } from "lucide-react";
 export function AttendanceSetupNotice({
   title = "Attendance setup needed",
   description = "The Hawk Attendance System code is deployed, but the database is still missing the latest attendance columns.",
+  eyebrow = "Hawk Attendance System",
+  migrationHint = "Apply the migration for the new attendance schema, then redeploy or refresh the page. The checked-in file is `prisma/migrations/20260404133000_unify_flex_attendance/migration.sql`.",
 }: {
   title?: string;
   description?: string;
+  eyebrow?: string;
+  migrationHint?: string;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl items-center justify-center py-10 sm:py-16">
@@ -16,16 +20,13 @@ export function AttendanceSetupNotice({
             <DatabaseZap className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Hawk Attendance System</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground sm:text-3xl">{title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[15px]">{description}</p>
             <div className="mt-5 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  Apply the migration for the new attendance schema, then redeploy or refresh the page. The checked-in
-                  file is <span className="font-semibold">`prisma/migrations/20260404133000_unify_flex_attendance/migration.sql`</span>.
-                </span>
+                <span>{migrationHint}</span>
               </div>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">

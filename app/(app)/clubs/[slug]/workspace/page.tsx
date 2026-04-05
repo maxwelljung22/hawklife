@@ -134,6 +134,8 @@ export default async function ClubWorkspacePage({ params }: Props) {
         <AttendanceSetupNotice
           title="Workspace needs the latest database update"
           description="This deployment includes the new club workspace, but the database is still missing the workspace tables or fields. Apply the latest Prisma changes, then refresh this page."
+          eyebrow="Club Workspace"
+          migrationHint="Apply the club workspace migration, then redeploy or refresh the page. The checked-in file is `prisma/migrations/20260404190000_add_club_workspace_core/migration.sql`."
         />
       );
     }
