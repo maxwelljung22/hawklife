@@ -79,10 +79,15 @@ export function ChangelogClient({ entries }: Props) {
                       <p className="text-[12px] text-muted-foreground">{format(new Date(entry.publishedAt), "MMMM d, yyyy")}</p>
                     </div>
                   </div>
-                  <div
-                    className="text-[13.5px] text-foreground/75 leading-relaxed [&_p]:mb-2 [&_ul]:pl-4 [&_ul]:mb-2 [&_li]:mb-1 [&_strong]:text-foreground [&_strong]:font-semibold"
-                    dangerouslySetInnerHTML={{ __html: entry.content }}
-                  />
+                  <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/75">
+                    {String(entry.content)
+                      .split(/\n{2,}/)
+                      .map((paragraph: string, index: number) => (
+                        <p key={`${entry.id}-paragraph-${index}`} className="whitespace-pre-line">
+                          {paragraph}
+                        </p>
+                      ))}
+                  </div>
                 </div>
               </div>
             </motion.div>

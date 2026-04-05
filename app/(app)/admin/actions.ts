@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { MembershipRole, UserRole } from "@prisma/client";
 import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
+import { normalizePlainText } from "@/lib/sanitize";
 
 async function checkAdmin() {
   const session = await auth();
@@ -42,10 +43,14 @@ export async function createChangelogEntry(data: {
 }) {
   try {
     await checkOversight();
+    const title = normalizePlainText(data.title, { maxLength: 120 });
+    const content = normalizePlainText(data.content, { maxLength: 5000 });
+    if (!title || !content) return { error: "Add a title and content first." };
+
     const entry = await prisma.changelogEntry.create({
       data: {
-        title: data.title,
-        content: data.content,
+        title,
+        content,
         type: data.type as any,
         isFeatured: data.isFeatured,
         isPublished: true,
@@ -68,11 +73,15 @@ export async function updateChangelogEntry(entryId: string, data: {
 }) {
   try {
     await checkOversight();
+    const title = normalizePlainText(data.title, { maxLength: 120 });
+    const content = normalizePlainText(data.content, { maxLength: 5000 });
+    if (!title || !content) return { error: "Add a title and content first." };
+
     const entry = await prisma.changelogEntry.update({
       where: { id: entryId },
       data: {
-        title: data.title,
-        content: data.content,
+        title,
+        content,
         type: data.type as any,
         isFeatured: data.isFeatured,
       },
