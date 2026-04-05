@@ -43,7 +43,7 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader }: C
 
       toast({
         title: next ? `Joined ${club.name}` : `Left ${club.name}`,
-        description: next ? "The workspace is now unlocked for you." : "You can always rejoin from the directory.",
+        description: next ? "You joined the club. The workspace is coming in v4.0.0." : "You can always rejoin from the directory.",
       });
     });
   };
@@ -129,15 +129,13 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader }: C
             </motion.button>
 
             <Link
-              href={joined || isLeader ? `/clubs/${club.id}/workspace` : "#"}
+              href={`/clubs/${club.id}/workspace`}
               className={cn(
                 "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200",
-                joined || isLeader
-                  ? "bg-neutral-950/80 text-white hover:bg-neutral-950"
-                  : "cursor-not-allowed border border-white/14 bg-white/8 text-white/46"
+                "bg-neutral-950/80 text-white hover:bg-neutral-950"
               )}
             >
-              Open Workspace
+              Coming Soon
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -174,22 +172,17 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader }: C
           </p>
           <div className="mt-6 rounded-[1.5rem] border border-border/80 bg-background/80 p-5">
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Primary action</p>
-            <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-foreground">Open the club workspace</p>
-            <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-              {joined || isLeader
-                ? "Your workspace is ready with stream, assignments, tasks, resources, members, and customization."
-                : "Join the club first to unlock the full workspace experience."}
-            </p>
+              <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-foreground">Open the club workspace</p>
+              <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
+              The full club workspace is currently locked while we finish the v4.0.0 release.
+              </p>
             <Link
-              href={joined || isLeader ? `/clubs/${club.id}/workspace` : "#"}
+              href={`/clubs/${club.id}/workspace`}
               className={cn(
-                "mt-5 inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200",
-                joined || isLeader
-                  ? "bg-neutral-950 text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] hover:-translate-y-0.5 hover:bg-neutral-800"
-                  : "cursor-not-allowed border border-border bg-muted text-muted-foreground"
+                "mt-5 inline-flex items-center gap-2 rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-neutral-800"
               )}
             >
-              Open Workspace
+              Coming Soon in v4.0.0
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

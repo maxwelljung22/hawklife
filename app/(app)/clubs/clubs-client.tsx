@@ -93,7 +93,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
 
         toast({
           title: next ? `Joined ${club.name}` : `Left ${club.name}`,
-          description: next ? "The workspace is unlocked from the club page." : "You can always rejoin later.",
+          description: next ? "You can view the club page now. Workspace returns in v4.0.0." : "You can always rejoin later.",
         });
       });
     },
@@ -235,7 +235,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                             : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        Open Workspace
+                        Coming Soon
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </div>
