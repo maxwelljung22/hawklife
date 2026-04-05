@@ -6,6 +6,7 @@
 
 <p align="center">
   Digital student life platform for St. Joseph's Preparatory School
+  Created by Maxwell Jung '27
 </p>
 
 <p align="center">
