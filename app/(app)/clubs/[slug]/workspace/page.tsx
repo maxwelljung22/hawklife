@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
@@ -11,24 +11,65 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+async function getBaseClub(identifier: string) {
+  try {
+    return await prisma.club.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ id: identifier }, { slug: identifier }],
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        emoji: true,
+        bannerUrl: true,
+        gradientFrom: true,
+        gradientTo: true,
+        workspaceTitle: true,
+        workspaceDescription: true,
+      },
+    });
+  } catch (error) {
+    if (!isPrismaSchemaMismatchError(error)) throw error;
+
+    return prisma.club.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ id: identifier }, { slug: identifier }],
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        emoji: true,
+        bannerUrl: true,
+        gradientFrom: true,
+        gradientTo: true,
+      },
+    }).then((club) => (club ? { ...club, workspaceTitle: null, workspaceDescription: null } : null));
+  }
+}
+
 async function getWorkspaceData(identifier: string, userId: string, userRole: string) {
-  const club = await prisma.club.findFirst({
-    where: {
-      isActive: true,
-      OR: [{ id: identifier }, { slug: identifier }],
-    },
+  const club = await getBaseClub(identifier);
+  if (!club) return null;
+
+  const membership = await prisma.membership.findUnique({
+    where: { userId_clubId: { userId, clubId: club.id } },
     select: {
-      id: true,
-      slug: true,
-      name: true,
-      emoji: true,
-      bannerUrl: true,
-      gradientFrom: true,
-      gradientTo: true,
-      workspaceTitle: true,
-      workspaceDescription: true,
-      memberships: {
-        where: { status: "ACTIVE" },
+      status: true,
+      role: true,
+    },
+  });
+
+  const joined = membership?.status === "ACTIVE" || canAccessAdmin(userRole as UserRole);
+  if (!joined) return { accessDenied: true as const, clubId: club.id };
+
+  const [members, resources, streamPosts, assignments, tasks] = await Promise.all([
+    prisma.membership
+      .findMany({
+        where: { clubId: club.id, status: "ACTIVE" },
         orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
         select: {
           id: true,
@@ -42,9 +83,14 @@ async function getWorkspaceData(identifier: string, userId: string, userRole: st
             },
           },
         },
-      },
-      resources: {
-        where: { membersOnly: true },
+      })
+      .catch((error) => {
+        if (isPrismaSchemaMismatchError(error)) return [];
+        throw error;
+      }),
+    prisma.resource
+      .findMany({
+        where: { clubId: club.id, membersOnly: true },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -55,8 +101,31 @@ async function getWorkspaceData(identifier: string, userId: string, userRole: st
           category: true,
           createdAt: true,
         },
-      },
-      workspacePosts: {
+      })
+      .catch(async (error) => {
+        if (!isPrismaSchemaMismatchError(error)) throw error;
+
+        return prisma.resource.findMany({
+          where: { clubId: club.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            url: true,
+            type: true,
+            createdAt: true,
+          },
+        }).then((items) =>
+          items.map((item) => ({
+            ...item,
+            category: "RESOURCE",
+          }))
+        );
+      }),
+    prisma.workspacePost
+      .findMany({
+        where: { clubId: club.id },
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { id: true, name: true, image: true } },
@@ -66,8 +135,14 @@ async function getWorkspaceData(identifier: string, userId: string, userRole: st
           },
           reactions: { select: { id: true, userId: true } },
         },
-      },
-      workspaceAssignments: {
+      })
+      .catch((error) => {
+        if (isPrismaSchemaMismatchError(error)) return [];
+        throw error;
+      }),
+    prisma.workspaceAssignment
+      .findMany({
+        where: { clubId: club.id },
         orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
         include: {
           createdBy: { select: { id: true, name: true, image: true } },
@@ -75,35 +150,34 @@ async function getWorkspaceData(identifier: string, userId: string, userRole: st
             include: { user: { select: { id: true, name: true, image: true } } },
           },
         },
-      },
-      workspaceTasks: {
+      })
+      .catch((error) => {
+        if (isPrismaSchemaMismatchError(error)) return [];
+        throw error;
+      }),
+    prisma.workspaceTask
+      .findMany({
+        where: { clubId: club.id },
         orderBy: { createdAt: "desc" },
         include: {
           assignee: { select: { id: true, name: true, image: true } },
         },
-      },
-    },
-  });
-
-  if (!club) return null;
-
-  const membership = await prisma.membership.findUnique({
-    where: { userId_clubId: { userId, clubId: club.id } },
-    select: { status: true, role: true },
-  });
-
-  const joined = membership?.status === "ACTIVE" || canAccessAdmin(userRole as any);
-  if (!joined) return { accessDenied: true as const, clubId: club.id };
+      })
+      .catch((error) => {
+        if (isPrismaSchemaMismatchError(error)) return [];
+        throw error;
+      }),
+  ]);
 
   return {
     club,
     currentUserId: userId,
-    isLeader: canManageClubMembershipRole(membership?.role) || canAccessAdmin(userRole as any),
-    streamPosts: club.workspacePosts,
-    assignments: club.workspaceAssignments,
-    tasks: club.workspaceTasks,
-    resources: club.resources,
-    members: club.memberships,
+    isLeader: canManageClubMembershipRole(membership?.role) || canAccessAdmin(userRole as UserRole),
+    streamPosts,
+    assignments,
+    tasks,
+    resources,
+    members,
   };
 }
 
