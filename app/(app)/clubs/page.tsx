@@ -77,7 +77,7 @@ export default async function ClubsPage({
 
   return (
     <Suspense fallback={<ClubsSkeleton />}>
-      <ClubsClient clubs={clubs} userId={session.user.id} role={session.user.role} />
+      <ClubsClient clubs={clubs} role={session.user.role} />
     </Suspense>
   );
 }
