@@ -1,0 +1,48 @@
+name: Idea or Feature Request
+description: Suggest an improvement, product idea, or workflow enhancement for HawkLife
+title: "[Idea]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for product ideas, workflow improvements, and feature suggestions for HawkLife.
+
+        The HawkLife development team is not accepting external code contributions, but ideas are welcome for review.
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      description: What part of HawkLife is this idea for?
+      placeholder: Example: Clubs, Applications, Attendance, Notifications, Admin
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: Describe the idea or feature request.
+      placeholder: Explain what you want to see added or improved.
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: Why it matters
+      description: What problem does this solve, and for whom?
+      placeholder: Explain the user benefit or operational value.
+    validations:
+      required: true
+  - type: textarea
+    id: concept
+    attributes:
+      label: Suggested approach
+      description: If you have one, describe how you imagine it working.
+      placeholder: Optional implementation thoughts or UX ideas.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        For more information or follow-up, contact Maxwell Jung '27.

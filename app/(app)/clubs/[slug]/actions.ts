@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
-import type { MembershipRole, ResourceCategory, ResourceType } from "@prisma/client";
+import type { ApplicationStatus, MembershipRole, ResourceCategory, ResourceType } from "@prisma/client";
 
 async function canManageClub(clubId: string, userId: string, role: string) {
   if (canAccessAdmin(role as any)) return true;
@@ -16,6 +16,39 @@ async function canManageClub(clubId: string, userId: string, role: string) {
   });
 
   return Boolean(membership && membership.status === "ACTIVE" && canManageClubMembershipRole(membership.role));
+}
+
+function normalizeApplicationFields(fields: any[]) {
+  const normalized: Array<{
+    id: string;
+    label: string;
+    type: string;
+    required: boolean;
+    placeholder?: string;
+    options?: string[];
+  }> = [];
+
+  for (const [index, field] of fields.entries()) {
+    const label = String(field?.label ?? "").trim();
+    if (!label) continue;
+
+    const type = String(field?.type ?? "text").trim();
+    const required = Boolean(field?.required);
+    const placeholder = String(field?.placeholder ?? "").trim();
+    const rawOptions = Array.isArray(field?.options) ? field.options : [];
+    const options = rawOptions.map((option: unknown) => String(option).trim()).filter(Boolean);
+
+    normalized.push({
+      id: String(field?.id ?? `field-${index + 1}`),
+      label,
+      type: ["text", "textarea", "email", "select"].includes(type) ? type : "text",
+      required,
+      placeholder: placeholder || undefined,
+      options: type === "select" ? options : undefined,
+    });
+  }
+
+  return normalized;
 }
 
 export async function createPost(clubId: string, title: string, content: string) {
@@ -411,25 +444,164 @@ export async function submitApplication(clubId: string, responses: Record<string
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };
 
-  // Check form is open
-  const form = await prisma.appForm.findUnique({ where: { clubId }, select: { isOpen: true, deadline: true } });
+  const club = await prisma.club.findUnique({
+    where: { id: clubId },
+    select: { requiresApp: true, slug: true },
+  });
+  if (!club?.requiresApp) return { error: "This club is not currently accepting applications" };
+
+  const form = await prisma.appForm.findUnique({
+    where: { clubId },
+    select: { isOpen: true, deadline: true, fields: true },
+  });
   if (!form?.isOpen) return { error: "Applications are closed" };
   if (form.deadline && new Date() > form.deadline) return { error: "Application deadline has passed" };
 
-  // Check not already applied
   const existing = await prisma.application.findUnique({
     where: { clubId_applicantId: { clubId, applicantId: session.user.id } },
   });
   if (existing) return { error: "You have already applied" };
 
+  const fields = normalizeApplicationFields(Array.isArray(form.fields) ? (form.fields as any[]) : []);
+  for (const field of fields) {
+    if (!field.required) continue;
+    const value = String(responses[field.id] ?? "").trim();
+    if (!value) {
+      return { error: `Please complete "${field.label}".` };
+    }
+  }
+
   try {
     await prisma.application.create({
       data: { clubId, applicantId: session.user.id, responses, status: "SUBMITTED" },
     });
+    revalidatePath(`/clubs/${club.slug}`);
+    revalidatePath(`/applications`);
     revalidatePath(`/clubs`);
     return { success: true };
   } catch (err) {
     return { error: "Failed to submit application" };
+  }
+}
+
+export async function saveClubApplicationForm(
+  clubId: string,
+  input: {
+    enabled: boolean;
+    isOpen: boolean;
+    deadline?: string | null;
+    maxSlots?: string | number | null;
+    fields: any[];
+  }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to manage applications" };
+  }
+
+  const club = await prisma.club.findUnique({
+    where: { id: clubId },
+    select: { id: true, slug: true },
+  });
+  if (!club) return { error: "Club not found" };
+
+  const fields = normalizeApplicationFields(input.fields);
+  if (input.enabled && fields.length === 0) {
+    return { error: "Add at least one application question." };
+  }
+
+  try {
+    await prisma.$transaction([
+      prisma.club.update({
+        where: { id: clubId },
+        data: { requiresApp: input.enabled },
+      }),
+      prisma.appForm.upsert({
+        where: { clubId },
+        update: {
+          isOpen: input.enabled ? input.isOpen : false,
+          deadline: input.deadline ? new Date(input.deadline) : null,
+          maxSlots: input.maxSlots ? Number(input.maxSlots) : null,
+          fields,
+        },
+        create: {
+          clubId,
+          isOpen: input.enabled ? input.isOpen : false,
+          deadline: input.deadline ? new Date(input.deadline) : null,
+          maxSlots: input.maxSlots ? Number(input.maxSlots) : null,
+          fields,
+        },
+      }),
+    ]);
+
+    revalidatePath(`/clubs/${club.slug}`);
+    revalidatePath(`/applications`);
+    revalidatePath(`/admin`);
+    return { success: true };
+  } catch (err) {
+    console.error("[saveClubApplicationForm]", err);
+    return { error: "Failed to save application settings" };
+  }
+}
+
+export async function reviewClubApplication(
+  applicationId: string,
+  status: ApplicationStatus,
+  reviewNotes?: string
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: {
+      id: true,
+      clubId: true,
+      applicantId: true,
+      club: { select: { slug: true } },
+    },
+  });
+  if (!application) return { error: "Application not found" };
+
+  if (!(await canManageClub(application.clubId, session.user.id, session.user.role))) {
+    return { error: "You must be a club leader to review applications" };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.application.update({
+        where: { id: applicationId },
+        data: {
+          status,
+          reviewNotes: reviewNotes?.trim() || null,
+          reviewedAt: new Date(),
+          reviewedBy: session.user.id,
+        },
+      });
+
+      if (status === "ACCEPTED") {
+        await tx.membership.upsert({
+          where: { userId_clubId: { userId: application.applicantId, clubId: application.clubId } },
+          update: { status: "ACTIVE" },
+          create: {
+            userId: application.applicantId,
+            clubId: application.clubId,
+            status: "ACTIVE",
+            role: "MEMBER",
+          },
+        });
+      }
+    });
+
+    revalidatePath(`/clubs/${application.club.slug}`);
+    revalidatePath(`/applications`);
+    revalidatePath(`/admin`);
+    return { success: true };
+  } catch (err) {
+    console.error("[reviewClubApplication]", err);
+    return { error: "Failed to review application" };
   }
 }
 

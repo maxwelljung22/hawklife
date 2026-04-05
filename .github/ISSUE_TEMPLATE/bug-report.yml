@@ -1,0 +1,59 @@
+name: Bug Report
+description: Report a bug or broken flow in HawkLife
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue.
+
+        This repository is maintained by the HawkLife development team for St. Joseph's Preparatory School. External code contributions are not accepted, but bug reports are helpful for tracking and review.
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      description: What part of HawkLife is affected?
+      placeholder: Example: Clubs, Applications, Flex, Admin, Calendar
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly and directly.
+      placeholder: Tell us what broke and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps so the team can reproduce it.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and how serious is it?
+      placeholder: Example: Students cannot submit club applications.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Add screenshots, error text, device/browser info, or anything else helpful.
+      placeholder: Paste error messages or add any helpful notes here.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        If you have urgent questions or need more context, contact Maxwell Jung '27.

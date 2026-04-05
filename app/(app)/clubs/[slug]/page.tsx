@@ -68,10 +68,63 @@ async function getClubByIdentifier(identifier: string, userId: string) {
     select: { status: true, role: true },
   });
 
+  const isLeader = canManageClubMembershipRole(membership?.role);
+
+  const [appForm, currentApplication, applications] = await Promise.all([
+    prisma.appForm.findUnique({
+      where: { clubId: club.id },
+      select: {
+        id: true,
+        fields: true,
+        deadline: true,
+        maxSlots: true,
+        isOpen: true,
+      },
+    }),
+    prisma.application.findUnique({
+      where: {
+        clubId_applicantId: {
+          clubId: club.id,
+          applicantId: userId,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        responses: true,
+        reviewNotes: true,
+        createdAt: true,
+      },
+    }),
+    isLeader
+      ? prisma.application.findMany({
+          where: { clubId: club.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            responses: true,
+            reviewNotes: true,
+            createdAt: true,
+            applicant: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+
   return {
     club,
     joined: membership?.status === "ACTIVE",
-    isLeader: canManageClubMembershipRole(membership?.role),
+    isLeader,
+    appForm,
+    currentApplication,
+    applications,
   };
 }
 

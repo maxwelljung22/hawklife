@@ -9,11 +9,15 @@ import { joinClub, leaveClub } from "@/app/(app)/clubs/actions";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ClubApplicationsPanel } from "@/components/clubs/club-applications-panel";
 
 type ClubLandingProps = {
   club: any;
   joined: boolean;
   isLeader: boolean;
+  appForm: any;
+  currentApplication: any;
+  applications: any[];
 };
 
 const fadeUp = {
@@ -21,7 +25,7 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
 };
 
-export function ClubLandingClient({ club, joined: joinedInitially, isLeader }: ClubLandingProps) {
+export function ClubLandingClient({ club, joined: joinedInitially, isLeader, appForm, currentApplication, applications }: ClubLandingProps) {
   const [joined, setJoined] = useState(joinedInitially);
   const [memberCount, setMemberCount] = useState(club._count.memberships);
   const [isPending, startTransition] = useTransition();
@@ -188,6 +192,14 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader }: C
           </div>
         </motion.section>
       </div>
+
+      <ClubApplicationsPanel
+        club={club}
+        isLeader={isLeader}
+        currentApplication={currentApplication}
+        appForm={appForm}
+        applications={applications}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <motion.section variants={fadeUp} className="surface-panel rounded-[1.75rem] p-6">

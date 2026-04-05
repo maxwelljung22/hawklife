@@ -41,7 +41,6 @@ export default async function ApplicationsPage() {
     <ApplicationsClient
       myApplications={myApplications as any}
       openForms={openForms as any}
-      userId={session.user.id}
     />
   );
 }

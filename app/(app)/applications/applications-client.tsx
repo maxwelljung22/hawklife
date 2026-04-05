@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
   WAITLISTED:    { icon: AlertCircle,   color: "text-purple-600",  bg: "bg-purple-50 dark:bg-purple-900/20",    label: "Waitlisted"   },
 };
 
-export function ApplicationsClient({ myApplications, openForms, userId }: any) {
+export function ApplicationsClient({ myApplications, openForms }: any) {
   return (
     <div className="space-y-10 max-w-2xl">
       {/* Header */}
@@ -66,7 +66,7 @@ export function ApplicationsClient({ myApplications, openForms, userId }: any) {
                   </div>
                 </div>
                 <Link
-                  href={`/clubs/${form.club.slug}?tab=applications`}
+                  href={`/clubs/${form.club.slug}`}
                   className="flex items-center gap-2 px-4 py-2 bg-crimson text-white rounded-xl text-[13px] font-medium hover:bg-crimson/90 transition-all shadow-md shadow-crimson/20 flex-shrink-0"
                 >
                   Apply <ArrowRight className="h-3.5 w-3.5" />
@@ -123,6 +123,15 @@ export function ApplicationsClient({ myApplications, openForms, userId }: any) {
                     <p className="text-[13px] text-foreground/75">{app.reviewNotes}</p>
                   </div>
                 )}
+                <div className="mt-4 pt-3 border-t border-border">
+                  <Link
+                    href={`/clubs/${app.club.slug}`}
+                    className="inline-flex items-center gap-2 text-[13px] font-medium text-foreground transition-colors duration-200 hover:text-[hsl(var(--primary))]"
+                  >
+                    View club page
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </motion.div>
             );
           })
