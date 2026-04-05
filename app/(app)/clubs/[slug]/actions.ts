@@ -605,6 +605,43 @@ export async function reviewClubApplication(
   }
 }
 
+export async function deleteClubApplication(applicationId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: {
+      id: true,
+      clubId: true,
+      applicantId: true,
+      club: { select: { slug: true } },
+    },
+  });
+  if (!application) return { error: "Application not found" };
+
+  const canManage = await canManageClub(application.clubId, session.user.id, session.user.role);
+  const canDeleteOwn = application.applicantId === session.user.id;
+
+  if (!canManage && !canDeleteOwn) {
+    return { error: "You do not have permission to delete this application" };
+  }
+
+  try {
+    await prisma.application.delete({
+      where: { id: applicationId },
+    });
+
+    revalidatePath(`/clubs/${application.club.slug}`);
+    revalidatePath(`/applications`);
+    revalidatePath(`/admin`);
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteClubApplication]", err);
+    return { error: "Failed to delete application" };
+  }
+}
+
 export async function castVote(pollId: string, optionId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };

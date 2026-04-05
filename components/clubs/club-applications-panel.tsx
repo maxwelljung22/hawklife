@@ -3,9 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { AlertCircle, CheckCircle, Clock, Plus, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, Plus, Trash2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  deleteClubApplication,
   reviewClubApplication,
   saveClubApplicationForm,
   submitApplication,
@@ -137,6 +138,20 @@ export function ClubApplicationsPanel({
     startTransition(() => router.refresh());
   };
 
+  const deleteApplication = async (applicationId: string, message: string) => {
+    const confirmed = window.confirm(message);
+    if (!confirmed) return;
+
+    const result = await deleteClubApplication(applicationId);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Application deleted" });
+    startTransition(() => router.refresh());
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
       <motion.section
@@ -166,6 +181,14 @@ export function ClubApplicationsPanel({
                 {currentApplication.reviewNotes ? (
                   <p className="mt-3 text-[13px] leading-6 text-foreground/75">{currentApplication.reviewNotes}</p>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={() => deleteApplication(currentApplication.id, `Delete your application to ${club.name}? This cannot be undone.`)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-2 text-[12px] font-medium text-rose-600 transition-colors duration-200 hover:bg-background"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete application
+                </button>
               </div>
             </div>
           </div>
@@ -477,6 +500,13 @@ export function ClubApplicationsPanel({
                           <p className="mt-1 text-[12px] text-muted-foreground">Submitted {formatRelativeTime(application.createdAt)}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => deleteApplication(application.id, `Delete ${application.applicant.name}'s application to ${club.name}? This cannot be undone.`)}
+                            className="rounded-xl border border-border bg-card px-3 py-2 text-[12px] font-medium text-rose-600 transition-colors hover:bg-muted"
+                          >
+                            Delete
+                          </button>
                           <button type="button" onClick={() => updateStatus(application.id, "UNDER_REVIEW")} className="rounded-xl border border-border bg-card px-3 py-2 text-[12px] font-medium text-foreground transition-colors hover:bg-muted">
                             Review
                           </button>

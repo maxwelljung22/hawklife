@@ -1,12 +1,15 @@
 // app/(app)/applications/applications-client.tsx
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useTransition } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CheckCircle, Clock, XCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, Clock, XCircle, AlertCircle, ArrowRight, Trash2 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { deleteClubApplication } from "@/app/(app)/clubs/[slug]/actions";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_CONFIG = {
   SUBMITTED:     { icon: Clock,         color: "text-amber-600",   bg: "bg-amber-50 dark:bg-amber-900/20",      label: "Submitted"    },
@@ -17,6 +20,24 @@ const STATUS_CONFIG = {
 };
 
 export function ApplicationsClient({ myApplications, openForms }: any) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = async (applicationId: string, clubName: string) => {
+    const confirmed = window.confirm(`Delete your application to ${clubName}? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const result = await deleteClubApplication(applicationId);
+    if (result?.error) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Application deleted" });
+    startTransition(() => router.refresh());
+  };
+
   return (
     <div className="space-y-10 max-w-2xl">
       {/* Header */}
@@ -124,13 +145,24 @@ export function ApplicationsClient({ myApplications, openForms }: any) {
                   </div>
                 )}
                 <div className="mt-4 pt-3 border-t border-border">
-                  <Link
-                    href={`/clubs/${app.club.slug}`}
-                    className="inline-flex items-center gap-2 text-[13px] font-medium text-foreground transition-colors duration-200 hover:text-[hsl(var(--primary))]"
-                  >
-                    View club page
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/clubs/${app.club.slug}`}
+                      className="inline-flex items-center gap-2 text-[13px] font-medium text-foreground transition-colors duration-200 hover:text-[hsl(var(--primary))]"
+                    >
+                      View club page
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleDelete(app.id, app.club.name)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-[12px] font-medium text-rose-600 transition-colors duration-200 hover:bg-muted disabled:opacity-60"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );
