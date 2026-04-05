@@ -1,59 +1,129 @@
-# HawkLife — St. Joseph's Preparatory School
+<p align="center">
+  <img src="./public/hawklife-hawk.png" alt="HawkLife logo" width="112" />
+</p>
 
-Student activity platform built with Next.js 14, Prisma, NextAuth v5, and Tailwind CSS.
+<h1 align="center">HawkLife</h1>
+
+<p align="center">
+  Digital student life platform for St. Joseph's Preparatory School
+</p>
+
+<p align="center">
+  HawkLife is built solely for the use of St. Joseph's Preparatory School.
+</p>
+
+## Overview
+
+HawkLife is the internal platform for student life, clubs, flex attendance, announcements, school activities, and organization across St. Joseph's Preparatory School.
+
+It is designed to give students, faculty, and administrators one polished place to manage the day-to-day rhythm of school life:
+
+- club discovery and membership
+- announcements and school updates
+- flex attendance and QR workflows
+- student leadership tools
+- school calendars, applications, and voting
+
+This codebase is not intended to be a generic public SaaS product. It is a school-specific platform tailored to the workflows, identity, and operational needs of St. Joseph's Prep.
+
+## Core Product Areas
+
+- `Club Directory`: discover clubs, view club pages, and manage membership.
+- `Announcements`: share updates across the school and club ecosystem.
+- `Flex Attendance`: support check-in and attendance workflows.
+- `Applications`: manage student club applications and charter flows.
+- `Calendar + Events`: centralize school and club scheduling.
+- `Admin + Faculty Tools`: give staff the controls they need without cluttering the student experience.
+
+## Tech Stack
+
+- `Framework`: Next.js App Router
+- `Language`: TypeScript
+- `Database`: PostgreSQL with Prisma ORM
+- `Auth`: NextAuth v5 with Google OAuth
+- `Styling`: Tailwind CSS
+- `Animation`: Framer Motion
+- `External Integrations`: Airtable for NHS hours workflows
 
 ## Quick Start
 
 ```bash
-# 1. Install
+# Install dependencies
 npm install
 
-# 2. Copy env file and fill in values
-cp .env.example .env
-
-# 2.5 Validate that you replaced every placeholder
+# Validate environment configuration
 npm run check:env
 
-# 3. Push database schema
-npm run db:migrate
+# Push the current Prisma schema
+npm run db:push
 
-# 4. Seed with starter clubs
+# Seed starter data if needed
 npm run db:seed
 
-# 5. Run dev server
+# Start the app
 npm run dev
 ```
 
-Visit https://hawklife.vercel.app
+Open [https://hawklife.vercel.app](https://hawklife.vercel.app) for production or `http://localhost:3000` for local development.
+
+## Environment Variables
+
+Required variables:
+
+- `DATABASE_URL`: Supabase pooled connection string for the app
+- `DIRECT_URL`: Supabase direct connection string for schema changes
+- `NEXTAUTH_SECRET`: secret used for authentication sessions
+- `NEXTAUTH_URL`: deployment URL, typically `https://hawklife.vercel.app`
+- `GOOGLE_CLIENT_ID`: Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
+- `AIRTABLE_API_KEY`: Airtable API token for NHS sync
+- `AIRTABLE_BASE_ID`: Airtable base ID
+- `AIRTABLE_TABLE`: Airtable table name
+
+Notes:
+
+- Next.js reads `.env.local`, while Prisma CLI reads `.env` by default.
+- Put shared local database values in `.env` so Prisma and the app are aligned.
+- Run `npm run check:env` before launching if anything seems off.
+
+## Database Commands
+
+```bash
+# Push schema changes
+npm run db:push
+
+# Create and apply a local development migration
+npm run db:migrate
+
+# Apply a checked-in SQL migration directly
+npm run db:apply-sql -- prisma/migrations/<migration-folder>/migration.sql
+
+# Open Prisma Studio
+npm run db:studio
+```
 
 ## Deployment
 
-See the deployment guide in the conversation for step-by-step Vercel setup.
+HawkLife is deployed on Vercel and uses Supabase Postgres in production.
 
-**Required env vars:**
-- `DATABASE_URL` — Supabase pooled connection string (with `?pgbouncer=true`)
-- `DIRECT_URL` — Supabase direct connection string
-- `NEXTAUTH_SECRET` — run `openssl rand -base64 32`
-- `NEXTAUTH_URL` — `https://hawklife.vercel.app`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — from Google Cloud Console
-- `AIRTABLE_API_KEY` / `AIRTABLE_BASE_ID` / `AIRTABLE_TABLE` — NHS integration
+Recommended deployment flow:
 
-Next.js also reads `.env.local`, but Prisma CLI reads `.env` by default. Put shared local secrets in `.env` so both the app and database commands use the same values.
+1. Update code.
+2. Apply required Prisma schema changes to the correct production database.
+3. Redeploy on Vercel.
+4. Verify auth, flex attendance, clubs, and admin workflows.
 
-If `npm run check:env` fails, you still have example placeholder values in `.env`.
+## Domain Role Mapping
 
-## Tech Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Auth**: NextAuth v5 beta + Google OAuth
-- **Database**: PostgreSQL + Prisma ORM
-- **Styling**: Tailwind CSS + Framer Motion
-- **Fonts**: Fraunces (display) + DM Sans (body) + DM Mono
-- **External**: Airtable (NHS hours sync)
-
-## Domain → Role Mapping
-
-| Email Domain | Role |
-|---|---|
+| Email domain | Default role |
+| --- | --- |
 | `@sjprep.org` | Faculty |
 | `@sjprephawks.org` | Student |
+
+## Product Positioning
+
+HawkLife aims to feel modern, fast, and school-native rather than like a generic student portal. The goal is to give St. Joseph's Prep a unified digital layer for student life with cleaner UX, stronger organization, and better day-to-day operational flow.
+
+## Ownership
+
+This repository, brand, and platform experience are intended exclusively for St. Joseph's Preparatory School.
