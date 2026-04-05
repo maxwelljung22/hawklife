@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Rocket, ChevronLeft } from "lucide-react";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { ApplicationsClient } from "./applications-client";
+import { isV4Enabled } from "@/lib/feature-flags";
 
 export const metadata = { title: "Applications" };
 export const dynamic = "force-dynamic";
@@ -9,6 +12,42 @@ export const dynamic = "force-dynamic";
 export default async function ApplicationsPage() {
   const session = await getSession();
   if (!session?.user) redirect("/auth/signin");
+
+  if (isV4Enabled()) {
+    const [myApplications, openForms] = await Promise.all([
+      prisma.application.findMany({
+        where: { applicantId: session.user.id },
+        orderBy: { createdAt: "desc" },
+        include: { club: { select: { name: true, emoji: true, slug: true } } },
+      }),
+      prisma.appForm.findMany({
+        where: {
+          isOpen: true,
+          OR: [{ deadline: null }, { deadline: { gte: new Date() } }],
+          club: {
+            isActive: true,
+            NOT: { applications: { some: { applicantId: session.user.id } } },
+          },
+        },
+        include: {
+          club: {
+            select: {
+              id: true,
+              name: true,
+              emoji: true,
+              slug: true,
+              description: true,
+              gradientFrom: true,
+              gradientTo: true,
+              category: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return <ApplicationsClient myApplications={myApplications as any} openForms={openForms as any} />;
+  }
 
   return (
     <div className="mx-auto flex min-h-[72vh] w-full max-w-4xl items-center justify-center py-10 sm:py-16">

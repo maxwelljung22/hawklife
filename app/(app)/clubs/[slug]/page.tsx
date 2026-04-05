@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageClubMembershipRole } from "@/lib/roles";
 import { ClubLandingClient } from "@/components/clubs/club-landing-client";
+import { isV4Enabled } from "@/lib/feature-flags";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -148,5 +149,5 @@ export default async function ClubPage({ params }: Props) {
   const data = await getClubByIdentifier(slug, session.user.id);
   if (!data) notFound();
 
-  return <ClubLandingClient {...data} />;
+  return <ClubLandingClient {...data} v4Enabled={isV4Enabled()} />;
 }

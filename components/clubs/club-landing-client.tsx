@@ -18,6 +18,7 @@ type ClubLandingProps = {
   appForm: any;
   currentApplication: any;
   applications: any[];
+  v4Enabled: boolean;
 };
 
 const fadeUp = {
@@ -25,7 +26,7 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
 };
 
-export function ClubLandingClient({ club, joined: joinedInitially, isLeader, appForm, currentApplication, applications }: ClubLandingProps) {
+export function ClubLandingClient({ club, joined: joinedInitially, isLeader, appForm, currentApplication, applications, v4Enabled }: ClubLandingProps) {
   const [joined, setJoined] = useState(joinedInitially);
   const [memberCount, setMemberCount] = useState(club._count.memberships);
   const [isPending, startTransition] = useTransition();
@@ -47,7 +48,11 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader, app
 
       toast({
         title: next ? `Joined ${club.name}` : `Left ${club.name}`,
-        description: next ? "You joined the club. The workspace is coming in v4.0.0." : "You can always rejoin from the directory.",
+        description: next
+          ? v4Enabled
+            ? "You joined the club."
+            : "You joined the club. The workspace is coming in v4.0.0."
+          : "You can always rejoin from the directory.",
       });
     });
   };
@@ -139,7 +144,7 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader, app
                 "bg-neutral-950/80 text-white hover:bg-neutral-950"
               )}
             >
-              Coming Soon
+              {v4Enabled ? "Open Workspace" : "Coming Soon"}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -178,7 +183,9 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader, app
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Primary action</p>
               <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-foreground">Open the club workspace</p>
               <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-              The full club workspace is currently locked while we finish the v4.0.0 release.
+              {v4Enabled
+                ? "Your club workspace is live with stream, assignments, tasks, resources, members, and customization."
+                : "The full club workspace is currently locked while we finish the v4.0.0 release."}
               </p>
             <Link
               href={`/clubs/${club.id}/workspace`}
@@ -186,7 +193,7 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader, app
                 "mt-5 inline-flex items-center gap-2 rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-neutral-800"
               )}
             >
-              Coming Soon in v4.0.0
+              {v4Enabled ? "Open Workspace" : "Coming Soon in v4.0.0"}
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -199,6 +206,7 @@ export function ClubLandingClient({ club, joined: joinedInitially, isLeader, app
         currentApplication={currentApplication}
         appForm={appForm}
         applications={applications}
+        v4Enabled={v4Enabled}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

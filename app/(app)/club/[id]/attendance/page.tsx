@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ensureClubFlexSession } from "@/app/(app)/flex/actions";
 import { AttendanceSetupNotice } from "@/components/attendance/attendance-setup-notice";
 import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
+import { isV4Enabled } from "@/lib/feature-flags";
+import { ComingSoonLock } from "@/components/attendance/coming-soon-lock";
 
 export const metadata = { title: "Attendance QR" };
 export const dynamic = "force-dynamic";
@@ -36,6 +38,16 @@ export default async function ClubAttendancePage({ params }: { params: Promise<{
   const { id } = await params;
   const session = await getSession();
   if (!session?.user) redirect("/auth/signin");
+
+  if (!isV4Enabled()) {
+    return (
+      <ComingSoonLock
+        eyebrow="Club attendance is coming in v4.0.0"
+        title="Club attendance is locked for now."
+        description="QR display, attendance sessions, and the broader flex experience are all being released together as part of HawkLife v4.0.0."
+      />
+    );
+  }
 
   const club = await prisma.club.findUnique({
     where: { id },
