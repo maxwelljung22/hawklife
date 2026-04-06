@@ -91,50 +91,41 @@ const STARS = [
   { left: "92%", top: "40%", size: "h-1 w-1", delay: 1.7 },
 ] as const;
 
-function IntroBackdrop({ reduceMotion, isMobile }: { reduceMotion: boolean; isMobile: boolean }) {
-  const visibleOrbs = isMobile ? FLOATING_ORBS.slice(0, 2) : FLOATING_ORBS;
-  const visibleStars = isMobile ? STARS.slice(0, 4) : STARS;
-
+function IntroBackdrop({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden">
       <div className="absolute inset-0 bg-[#04070d]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_24%),linear-gradient(135deg,rgba(8,15,32,0.94)_0%,rgba(4,7,13,0.94)_45%,rgba(18,10,28,0.94)_100%)]" />
-      <div className={cn(
-        "absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] opacity-[0.08] [mask-image:radial-gradient(circle_at_center,black,transparent_82%)]",
-        isMobile ? "bg-[size:160px_160px]" : "bg-[size:120px_120px]"
-      )} />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:120px_120px] opacity-[0.08] [mask-image:radial-gradient(circle_at_center,black,transparent_82%)]" />
 
-      {visibleOrbs.map((orb) => (
+      {FLOATING_ORBS.map((orb) => (
         <motion.div
           key={orb.className}
           animate={
-            reduceMotion || isMobile
+            reduceMotion
               ? { opacity: 0.7 }
               : { x: [...orb.x], y: [...orb.y], scale: [...orb.scale], opacity: [0.5, 0.88, 0.62, 0.5] }
           }
           transition={{
-            duration: isMobile ? 12 : 18,
+            duration: 18,
             repeat: Infinity,
             repeatType: "mirror",
             ease: "easeInOut",
           }}
-          className={cn("absolute rounded-full", isMobile ? "blur-[90px]" : "blur-[130px]", orb.className)}
+          className={cn("absolute rounded-full blur-[130px]", orb.className)}
         />
       ))}
 
       <motion.div
-        animate={reduceMotion || isMobile ? { opacity: 0.36 } : { opacity: [0.22, 0.4, 0.28], scale: [1, 1.08, 1] }}
-        transition={{ duration: isMobile ? 8 : 12, repeat: Infinity, ease: "easeInOut" }}
-        className={cn(
-          "absolute inset-x-[14%] top-[10%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.06)_28%,transparent_72%)]",
-          isMobile ? "h-[18rem] blur-[70px]" : "h-[28rem] blur-[100px]"
-        )}
+        animate={reduceMotion ? { opacity: 0.36 } : { opacity: [0.22, 0.4, 0.28], scale: [1, 1.08, 1] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute inset-x-[14%] top-[10%] h-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.06)_28%,transparent_72%)] blur-[100px]"
       />
 
-      {visibleStars.map((star) => (
+      {STARS.map((star) => (
         <motion.span
           key={`${star.left}-${star.top}`}
-          animate={reduceMotion || isMobile ? { opacity: 0.3 } : { opacity: [0.2, 0.9, 0.28], scale: [1, 1.5, 1] }}
+          animate={reduceMotion ? { opacity: 0.3 } : { opacity: [0.2, 0.9, 0.28], scale: [1, 1.5, 1] }}
           transition={{ duration: 3.8, repeat: Infinity, delay: star.delay, ease: "easeInOut" }}
           className={cn("absolute rounded-full bg-white/80 shadow-[0_0_20px_rgba(255,255,255,0.55)]", star.size)}
           style={{ left: star.left, top: star.top }}
@@ -223,7 +214,7 @@ function FeaturesScene({ featureIndex }: { featureIndex: number }) {
   );
 }
 
-function QrScene({ isMobile }: { isMobile: boolean }) {
+function QrScene() {
   return (
     <IntroSceneFrame>
       <div className="flex w-full max-w-3xl flex-col items-center">
@@ -237,16 +228,12 @@ function QrScene({ isMobile }: { isMobile: boolean }) {
             {QR_PATTERN.map((cell, index) => (
               <motion.span
                 key={index}
-                animate={
-                  isMobile
-                    ? undefined
-                    : {
-                        opacity: cell ? [0.68, 1, 0.72] : 1,
-                        scale: cell ? [1, 1.08, 1] : 1,
-                        backgroundColor: cell ? ["#020617", "#0f172a", "#0369a1", "#020617"] : undefined,
-                      }
-                }
-                transition={isMobile ? undefined : { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: index * 0.028 }}
+                animate={{
+                  opacity: cell ? [0.68, 1, 0.72] : 1,
+                  scale: cell ? [1, 1.08, 1] : 1,
+                  backgroundColor: cell ? ["#020617", "#0f172a", "#0369a1", "#020617"] : undefined,
+                }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: index * 0.028 }}
                 className={cn("h-3.5 w-3.5 rounded-[4px] sm:h-5 sm:w-5", cell ? "bg-slate-950" : "bg-transparent")}
               />
             ))}
@@ -359,29 +346,19 @@ export function IntroSequence({
   persistSeen: () => void;
 }) {
   const reduceMotion = Boolean(useReducedMotion());
-  const [isMobile, setIsMobile] = useState(false);
   const [scene, setScene] = useState<IntroSceneId>("welcome");
   const [featureIndex, setFeatureIndex] = useState(0);
   const completedRef = useRef(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
-    const sync = (matches: boolean) => setIsMobile(matches);
-    sync(mediaQuery.matches);
-    const handleChange = (event: MediaQueryListEvent) => sync(event.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  useEffect(() => {
     const timers: Array<ReturnType<typeof setTimeout>> = [];
-    const scheduleFactor = reduceMotion ? 0.55 : isMobile ? 0.8 : 1;
+    const scheduleFactor = reduceMotion ? 0.55 : 1;
 
     for (const item of INTRO_SCHEDULE.slice(1)) {
       timers.push(setTimeout(() => setScene(item.id), Math.max(0, item.at * scheduleFactor)));
     }
 
-    const featureStart = Math.max(0, (reduceMotion ? 3_200 : isMobile ? 5_600 : 7_000));
+    const featureStart = Math.max(0, reduceMotion ? 3_200 : 7_000);
     timers.push(
       setTimeout(() => {
         let current = 0;
@@ -391,7 +368,7 @@ export function IntroSequence({
           if (current >= INTRO_FEATURES.length - 1) {
             clearInterval(interval);
           }
-        }, reduceMotion ? 600 : isMobile ? 900 : FEATURE_DURATION_MS);
+        }, reduceMotion ? 600 : FEATURE_DURATION_MS);
 
         timers.push(interval);
       }, featureStart)
@@ -403,7 +380,7 @@ export function IntroSequence({
         completedRef.current = true;
         persistSeen();
         onDismiss();
-      }, reduceMotion ? 10_800 : isMobile ? 24_500 : INTRO_DURATION_MS)
+      }, reduceMotion ? 10_800 : INTRO_DURATION_MS)
     );
 
     return () => {
@@ -412,7 +389,7 @@ export function IntroSequence({
         clearInterval(timer);
       }
     };
-  }, [isMobile, onDismiss, persistSeen, reduceMotion]);
+  }, [onDismiss, persistSeen, reduceMotion]);
 
   const renderedScene = useMemo(() => {
     switch (scene) {
@@ -423,7 +400,7 @@ export function IntroSequence({
       case "features":
         return <FeaturesScene featureIndex={featureIndex} />;
       case "qr":
-        return <QrScene isMobile={isMobile} />;
+        return <QrScene />;
       case "phone":
         return <PhoneScene />;
       case "final":
@@ -433,7 +410,7 @@ export function IntroSequence({
       default:
         return null;
     }
-  }, [featureIndex, isMobile, scene]);
+  }, [featureIndex, scene]);
 
   const handleSkip = () => {
     if (completedRef.current) return;
@@ -450,7 +427,7 @@ export function IntroSequence({
       exit="exit"
       className="fixed inset-0 z-[200] overflow-hidden bg-black text-white"
     >
-      <IntroBackdrop reduceMotion={reduceMotion} isMobile={isMobile} />
+      <IntroBackdrop reduceMotion={reduceMotion} />
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
