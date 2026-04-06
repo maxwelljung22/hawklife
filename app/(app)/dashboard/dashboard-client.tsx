@@ -4,20 +4,26 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowUpRight, CalendarDays, Compass, Megaphone, Sparkles, Vote } from "lucide-react";
-import { formatRelativeTime, cn, initials } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CustomizableDashboard } from "@/components/dashboard/customizable-dashboard";
 import type { NhsRecord } from "@/lib/airtable";
 import { canAccessFacultyTools } from "@/lib/roles";
+import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
 
 interface Props {
-  user:            { name?: string | null; email?: string | null; image?: string | null; role: UserRole };
+  user:            { id: string; name?: string | null; email?: string | null; image?: string | null; role: UserRole };
   membershipCount: number;
   upcomingEvents:  any[];
   recentPosts:     any[];
   myMemberships:   any[];
   nhsRecord:       NhsRecord | null;
   unreadNotifs:    number;
+  notifications: any[];
+  workspaceTasks: any[];
+  assignmentDeadlines: any[];
+  applicationDeadlines: any[];
+  pinnedPosts: any[];
+  importantResources: any[];
 }
 
 const EASE = [0.4, 0, 0.2, 1] as const;
@@ -30,7 +36,21 @@ const STAT_COLORS: Record<string, string> = {
   green:   "rgba(46,125,82,.08)",
 };
 
-export function DashboardClient({ user, membershipCount, upcomingEvents, recentPosts, myMemberships, nhsRecord, unreadNotifs }: Props) {
+export function DashboardClient({
+  user,
+  membershipCount,
+  upcomingEvents,
+  recentPosts,
+  myMemberships,
+  nhsRecord,
+  unreadNotifs,
+  notifications,
+  workspaceTasks,
+  assignmentDeadlines,
+  applicationDeadlines,
+  pinnedPosts,
+  importantResources,
+}: Props) {
   const hour    = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user.name?.split(" ")[0] ?? "there";
@@ -106,134 +126,24 @@ export function DashboardClient({ user, membershipCount, upcomingEvents, recentP
         </div>
       </motion.div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { ico: "🏛️", val: membershipCount,       lbl: "Active Clubs",     col: "crimson" },
-          { ico: "📅", val: upcomingEvents.length,  lbl: "Upcoming Events",  col: "navy"   },
-          { ico: "📣", val: recentPosts.length,     lbl: "New Posts",        col: "gold"   },
-          { ico: "🎓", val: nhsRecord?.totalHours ?? "—", lbl: "NHS Hours",  col: "green"  },
-        ].map((s, i) => (
-          <motion.div key={s.lbl} {...fu(i * 0.05)} className="surface-card rounded-[30px] p-5 card-lift">
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-4 text-[17px]" style={{ background: STAT_COLORS[s.col] }}>
-              {s.ico}
-            </div>
-            <p className="text-foreground" style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, lineHeight: 1, letterSpacing: "-.02em" }}>{s.val}</p>
-            <p className="text-muted-foreground" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", marginTop: 5 }}>{s.lbl}</p>
-          </motion.div>
-        ))}
-      </div>
+      <CustomizableDashboard
+        userId={user.id}
+        membershipCount={membershipCount}
+        unreadNotifs={unreadNotifs}
+        upcomingEvents={upcomingEvents}
+        recentPosts={recentPosts}
+        myMemberships={myMemberships}
+        workspaceTasks={workspaceTasks}
+        notifications={notifications}
+        assignmentDeadlines={assignmentDeadlines}
+        applicationDeadlines={applicationDeadlines}
+        pinnedPosts={pinnedPosts}
+        importantResources={importantResources}
+      />
 
-      {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left — My clubs + Feed */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* My Clubs */}
-          <motion.div {...fu(0.1)}>
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600 }}>My Clubs</h2>
-              <Link href="/clubs" className="text-[12.5px] font-semibold transition-colors" style={{ color: "#8B1A1A" }}>Browse all →</Link>
-            </div>
-            {myMemberships.length === 0 ? (
-              <div className="surface-card rounded-[28px] p-10 text-center">
-                <div className="text-4xl mb-3 opacity-30">🏛️</div>
-                <p className="text-muted-foreground" style={{ fontFamily: "var(--font-display)", fontSize: 17 }}>No clubs yet</p>
-                <Link href="/clubs" className="inline-block mt-3 text-[13px] font-medium" style={{ color: "#8B1A1A" }}>Browse the directory →</Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {myMemberships.map((m: any) => (
-                  <Link key={m.id} href={`/clubs/${m.club.slug}`}>
-                    <div className="surface-card flex items-start gap-3.5 rounded-[24px] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover cursor-pointer sm:items-center">
-                      <div className="h-10 w-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: `linear-gradient(135deg, ${m.club.gradientFrom}, ${m.club.gradientTo})` }}>
-                        {m.club.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-semibold text-foreground truncate">{m.club.name}</p>
-                        <p className="text-[12px] text-muted-foreground mt-0.5">
-                          {m.club.meetingDay && `📅 ${m.club.meetingDay}`}
-                          {m.club.meetingTime && ` · ${m.club.meetingTime}`}
-                        </p>
-                      </div>
-                      <span className="mt-0.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium capitalize text-muted-foreground sm:mt-0">{m.club.category.toLowerCase()}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Recent announcements */}
-          <motion.div {...fu(0.15)}>
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600 }}>Announcements</h2>
-              <Link href="/announcements" className="text-[12.5px] font-semibold" style={{ color: "#8B1A1A" }}>See all →</Link>
-            </div>
-            <div className="surface-card overflow-hidden rounded-[30px]">
-              {recentPosts.length === 0 ? (
-                <div className="p-10 text-center">
-                  <div className="text-3xl mb-2 opacity-30">📣</div>
-                  <p className="text-muted-foreground text-[13px]">No announcements yet</p>
-                </div>
-              ) : (
-                recentPosts.map((post: any, i: number) => (
-                  <div key={post.id} className={cn("flex gap-3 px-4 py-4 transition-colors cursor-pointer hover:bg-muted/30 sm:px-5", i < recentPosts.length - 1 && "border-b border-border")}>
-                    <div className="h-8 w-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm" style={{ background: `linear-gradient(135deg, ${post.club?.gradientFrom ?? "#0C1824"}, ${post.club?.gradientTo ?? "#152438"})` }}>
-                      {post.club?.emoji ?? "📣"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-[12.5px] font-semibold text-foreground/80">{post.club?.name}</p>
-                        <span className="text-[11px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
-                      </div>
-                      <p className="text-[13.5px] font-semibold text-foreground">{post.title}</p>
-                      <p className="text-[12.5px] text-muted-foreground mt-0.5 line-clamp-1">{post.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right — NHS + Upcoming */}
-        <div className="space-y-5">
-          {/* NHS Widget */}
-          <motion.div {...fu(0.12)}>
-            <NhsWidget record={nhsRecord} />
-          </motion.div>
-
-          {/* Upcoming events */}
-          <motion.div {...fu(0.18)}>
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600 }}>Upcoming</h2>
-              <Link href="/calendar" className="text-[12px] font-semibold" style={{ color: "#8B1A1A" }}>Calendar →</Link>
-            </div>
-            <div className="surface-card overflow-hidden rounded-[30px]">
-              {upcomingEvents.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="text-3xl mb-2 opacity-30">📅</div>
-                  <p className="text-muted-foreground text-[12.5px]">No upcoming events</p>
-                </div>
-              ) : (
-                upcomingEvents.map((evt: any, i: number) => (
-                  <div key={evt.id} className={cn("flex items-center gap-3.5 px-4 py-3 hover:bg-muted/30 transition-colors", i < upcomingEvents.length - 1 && "border-b border-border")}>
-                    <div className="w-10 h-10 rounded-xl flex-shrink-0 flex flex-col items-center justify-center" style={{ background: "rgba(139,26,26,.07)" }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600, color: "#8B1A1A", lineHeight: 1 }}>{format(new Date(evt.startTime), "d")}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "#8B1A1A", opacity: .7 }}>{format(new Date(evt.startTime), "MMM")}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-foreground truncate">{evt.title}</p>
-                      <p className="text-[11.5px] text-muted-foreground mt-0.5">{evt.club?.emoji} {evt.club?.name ?? "School Event"} · {format(new Date(evt.startTime), "h:mm a")}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </div>
+      <motion.div {...fu(0.12)}>
+        <NhsWidget record={nhsRecord} />
+      </motion.div>
     </div>
   );
 }

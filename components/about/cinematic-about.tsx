@@ -420,10 +420,10 @@ function MobileScene() {
         <div className="order-2 max-w-xl text-center lg:order-1 lg:text-left">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.34em] text-white/44">Mobile first</p>
           <h2 className="text-balance font-display text-[clamp(2.5rem,7vw,5.8rem)] font-semibold tracking-[-0.08em] text-white">
-            Built for your phone.
+            Built for you.
           </h2>
           <p className="mt-5 text-[clamp(1rem,2vw,1.15rem)] leading-8 text-white/58">
-            Fast to tap, easy to scan, and smooth enough to feel like it belongs in your pocket.
+            Fast to tap, easy to scan, and smooth enough to feel natural everywhere you use it.
           </p>
         </div>
 

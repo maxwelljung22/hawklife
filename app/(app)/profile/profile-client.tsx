@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Edit2, Save, X } from "lucide-react";
+import { Edit2, Save, Settings, X } from "lucide-react";
 import { updateProfile } from "./actions";
 import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,12 +70,20 @@ export function ProfileClient({ user, memberships }: any) {
               </div>
 
               {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 border border-border rounded-xl text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-                >
-                  <Edit2 className="h-3.5 w-3.5" /> Edit
-                </button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Link
+                    href="/profile/settings"
+                    className="flex items-center gap-1.5 px-3.5 py-2 border border-border rounded-xl text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                  >
+                    <Settings className="h-3.5 w-3.5" /> Settings
+                  </Link>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 border border-border rounded-xl text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" /> Edit
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <button onClick={() => setEditing(false)} className="h-9 w-9 flex items-center justify-center border border-border rounded-xl hover:bg-muted transition-colors">

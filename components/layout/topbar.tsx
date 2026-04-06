@@ -27,6 +27,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/faculty/create-session": "Create Session",
   "/club":          "Attendance QR",
   "/profile":       "Profile",
+  "/profile/settings": "Settings",
 };
 
 interface TopbarProps {

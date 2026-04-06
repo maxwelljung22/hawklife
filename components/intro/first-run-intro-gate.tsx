@@ -76,7 +76,7 @@ const FLOATING_ORBS = [
   { className: "right-[-10%] top-[12%] h-[30rem] w-[30rem] bg-[#38bdf8]/18", x: [0, -42, 18, 0], y: [0, 28, -32, 0], scale: [1, 1.08, 1.18, 1] },
   { className: "bottom-[-18%] left-[22%] h-[32rem] w-[32rem] bg-[#f43f5e]/16", x: [0, 30, -24, 0], y: [0, -36, 18, 0], scale: [1, 1.12, 1.04, 1] },
   { className: "bottom-[-14%] right-[10%] h-[24rem] w-[24rem] bg-[#fde047]/14", x: [0, -18, 24, 0], y: [0, -42, -14, 0], scale: [1, 1.1, 1.18, 1] },
-] as const;
+];
 
 const STARS = [
   { left: "8%", top: "14%", size: "h-1.5 w-1.5", delay: 0.1 },
@@ -104,7 +104,7 @@ function IntroBackdrop({ reduceMotion }: { reduceMotion: boolean }) {
           animate={
             reduceMotion
               ? { opacity: 0.7 }
-              : { x: orb.x, y: orb.y, scale: orb.scale, opacity: [0.5, 0.88, 0.62, 0.5] }
+              : { x: [...orb.x], y: [...orb.y], scale: [...orb.scale], opacity: [0.5, 0.88, 0.62, 0.5] }
           }
           transition={{
             duration: 18,

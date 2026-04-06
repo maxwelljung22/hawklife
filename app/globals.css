@@ -36,6 +36,48 @@
     --shell-topbar: 0 0% 100% / 0.78;
   }
 
+  :root[data-dashboard-theme="crimson"] {
+    --primary: 0 68% 32%;
+    --accent: 38 48% 42%;
+    --ring: 0 68% 32%;
+  }
+
+  :root[data-dashboard-theme="ocean"] {
+    --primary: 199 89% 43%;
+    --accent: 217 91% 60%;
+    --ring: 199 89% 43%;
+  }
+
+  :root[data-dashboard-theme="emerald"] {
+    --primary: 158 72% 35%;
+    --accent: 145 63% 42%;
+    --ring: 158 72% 35%;
+  }
+
+  :root[data-dashboard-theme="sunset"] {
+    --primary: 22 82% 48%;
+    --accent: 41 90% 45%;
+    --ring: 22 82% 48%;
+  }
+
+  :root[data-dashboard-theme="violet"] {
+    --primary: 258 84% 56%;
+    --accent: 270 76% 61%;
+    --ring: 258 84% 56%;
+  }
+
+  :root[data-dashboard-theme="graphite"] {
+    --primary: 221 39% 30%;
+    --accent: 215 20% 45%;
+    --ring: 221 39% 30%;
+  }
+
+  :root[data-dashboard-theme="rose"] {
+    --primary: 332 79% 40%;
+    --accent: 343 71% 55%;
+    --ring: 332 79% 40%;
+  }
+
   .dark {
     --background: 222 22% 8%;
     --foreground: 32 15% 94%;
@@ -63,6 +105,48 @@
     --shell-sidebar-hover: 220 22% 15%;
     --shell-sidebar-active: 221 22% 16%;
     --shell-topbar: 221 26% 10% / 0.72;
+  }
+
+  .dark[data-dashboard-theme="crimson"] {
+    --primary: 0 55% 48%;
+    --accent: 40 50% 60%;
+    --ring: 0 55% 48%;
+  }
+
+  .dark[data-dashboard-theme="ocean"] {
+    --primary: 197 100% 58%;
+    --accent: 217 91% 68%;
+    --ring: 197 100% 58%;
+  }
+
+  .dark[data-dashboard-theme="emerald"] {
+    --primary: 158 72% 48%;
+    --accent: 142 69% 58%;
+    --ring: 158 72% 48%;
+  }
+
+  .dark[data-dashboard-theme="sunset"] {
+    --primary: 24 94% 58%;
+    --accent: 43 96% 62%;
+    --ring: 24 94% 58%;
+  }
+
+  .dark[data-dashboard-theme="violet"] {
+    --primary: 263 94% 67%;
+    --accent: 270 95% 75%;
+    --ring: 263 94% 67%;
+  }
+
+  .dark[data-dashboard-theme="graphite"] {
+    --primary: 217 19% 64%;
+    --accent: 214 20% 74%;
+    --ring: 217 19% 64%;
+  }
+
+  .dark[data-dashboard-theme="rose"] {
+    --primary: 333 85% 66%;
+    --accent: 343 92% 73%;
+    --ring: 333 85% 66%;
   }
 
   * {
