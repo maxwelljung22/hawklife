@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
 import type { ResourceCategory, ResourceType, WorkspaceTaskStatus } from "@prisma/client";
+import {
+  normalizeHttpsUrl,
+  normalizeMultilineText,
+  normalizeSingleLineText,
+  normalizeThemeColor,
+} from "@/lib/sanitize";
 
 async function requireWorkspaceUser() {
   const session = await auth();
@@ -27,23 +33,11 @@ async function ensureWorkspaceAccess(clubId: string, userId: string, role?: stri
   return { canView, canManage };
 }
 
-function normalizeText(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function normalizeMultilineText(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
 function normalizeAttachments(attachments: string[]) {
   const items = attachments
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((url) => ({ url, label: url.replace(/^https?:\/\//, "") }));
+    .map((item) => normalizeHttpsUrl(item))
+    .filter((url): url is string => Boolean(url))
+    .map((url) => ({ url, label: url.replace(/^https:\/\//, "") }));
 
   return items.length > 0 ? items : undefined;
 }
@@ -169,8 +163,8 @@ export async function createWorkspaceAssignment(
   const access = await ensureWorkspaceAccess(clubId, user.id, user.role);
   if (!access.canManage) return { error: "Only club leaders can create assignments." };
 
-  const title = normalizeText(input.title);
-  const description = normalizeMultilineText(input.description);
+  const title = normalizeSingleLineText(input.title, { maxLength: 120 });
+  const description = normalizeMultilineText(input.description, { maxLength: 4000 });
   if (!title || !description) return { error: "Add a title and description." };
 
   try {
@@ -250,17 +244,29 @@ export async function createWorkspaceTask(
   const access = await ensureWorkspaceAccess(clubId, user.id, user.role);
   if (!access.canManage) return { error: "Only club leaders can create tasks." };
 
-  const title = normalizeText(input.title);
+  const title = normalizeSingleLineText(input.title, { maxLength: 120 });
   if (!title) return { error: "Add a task title." };
+
+  let assigneeId: string | null = null;
+  if (input.assigneeId) {
+    const assigneeMembership = await prisma.membership.findUnique({
+      where: { userId_clubId: { userId: input.assigneeId, clubId } },
+      select: { status: true },
+    });
+    if (!assigneeMembership || assigneeMembership.status !== "ACTIVE") {
+      return { error: "Assign tasks only to active club members." };
+    }
+    assigneeId = input.assigneeId;
+  }
 
   try {
     const task = await prisma.workspaceTask.create({
       data: {
         clubId,
         createdById: user.id,
-        assigneeId: input.assigneeId || null,
+        assigneeId,
         title,
-        description: normalizeMultilineText(input.description ?? "") || null,
+        description: normalizeMultilineText(input.description ?? "", { maxLength: 2000 }) || null,
         dueAt: input.dueAt ? new Date(input.dueAt) : null,
       },
       include: {
@@ -282,12 +288,13 @@ export async function updateWorkspaceTaskStatus(taskId: string, status: Workspac
 
   const task = await prisma.workspaceTask.findUnique({
     where: { id: taskId },
-    select: { id: true, clubId: true },
+    select: { id: true, clubId: true, assigneeId: true },
   });
   if (!task) return { error: "Task not found." };
 
   const access = await ensureWorkspaceAccess(task.clubId, user.id, user.role);
-  if (!access.canView) return { error: "Only members can update tasks." };
+  const canUpdate = access.canManage || task.assigneeId === user.id;
+  if (!canUpdate) return { error: "Only the assignee or club leaders can update this task." };
 
   try {
     await prisma.workspaceTask.update({
@@ -318,14 +325,17 @@ export async function createWorkspaceResource(
   const access = await ensureWorkspaceAccess(clubId, user.id, user.role);
   if (!access.canManage) return { error: "Only club leaders can add resources." };
 
+  const resourceUrl = normalizeHttpsUrl(input.url);
+  if (!resourceUrl) return { error: "Use a valid https:// URL for workspace resources." };
+
   try {
     const resource = await prisma.resource.create({
       data: {
         clubId,
         uploaderId: user.id,
-        name: normalizeText(input.name),
-        url: input.url.trim(),
-        description: normalizeMultilineText(input.description ?? "") || null,
+        name: normalizeSingleLineText(input.name, { maxLength: 120 }),
+        url: resourceUrl,
+        description: normalizeMultilineText(input.description ?? "", { maxLength: 2000 }) || null,
         type: input.type ?? "LINK",
         category: input.category ?? "RESOURCE",
         membersOnly: true,
@@ -356,15 +366,30 @@ export async function updateWorkspaceSettings(
   const access = await ensureWorkspaceAccess(clubId, user.id, user.role);
   if (!access.canManage) return { error: "Only club leaders can customize the workspace." };
 
+  const bannerUrl = input.bannerUrl ? normalizeHttpsUrl(input.bannerUrl) : null;
+  if (input.bannerUrl && !bannerUrl) {
+    return { error: "Use a valid https:// URL for the workspace banner." };
+  }
+
+  const gradientFrom = input.gradientFrom ? normalizeThemeColor(input.gradientFrom) : null;
+  if (input.gradientFrom && !gradientFrom) {
+    return { error: "Use a valid hex color for the first workspace accent." };
+  }
+
+  const gradientTo = input.gradientTo ? normalizeThemeColor(input.gradientTo) : null;
+  if (input.gradientTo && !gradientTo) {
+    return { error: "Use a valid hex color for the second workspace accent." };
+  }
+
   try {
     await prisma.club.update({
       where: { id: clubId },
       data: {
-        bannerUrl: input.bannerUrl?.trim() || null,
-        gradientFrom: input.gradientFrom?.trim() || undefined,
-        gradientTo: input.gradientTo?.trim() || undefined,
-        workspaceTitle: input.workspaceTitle?.trim() || null,
-        workspaceDescription: normalizeMultilineText(input.workspaceDescription ?? "") || null,
+        bannerUrl,
+        gradientFrom: gradientFrom ?? undefined,
+        gradientTo: gradientTo ?? undefined,
+        workspaceTitle: normalizeSingleLineText(input.workspaceTitle ?? "", { maxLength: 120 }) || null,
+        workspaceDescription: normalizeMultilineText(input.workspaceDescription ?? "", { maxLength: 1000 }) || null,
       },
     });
 

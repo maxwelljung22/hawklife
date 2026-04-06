@@ -4,8 +4,9 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
+import { canAccessAdmin, canManageClubMembershipRole, canTransitionClubMemberRole } from "@/lib/roles";
 import type { ApplicationStatus, MembershipRole, ResourceCategory, ResourceType } from "@prisma/client";
+import { normalizeHttpsUrl, normalizeMultilineText, normalizeSingleLineText } from "@/lib/sanitize";
 
 async function canManageClub(clubId: string, userId: string, role: string) {
   if (canAccessAdmin(role as any)) return true;
@@ -16,6 +17,27 @@ async function canManageClub(clubId: string, userId: string, role: string) {
   });
 
   return Boolean(membership && membership.status === "ACTIVE" && canManageClubMembershipRole(membership.role));
+}
+
+async function getClubManagementContext(clubId: string, userId: string, role: string) {
+  if (canAccessAdmin(role as any)) {
+    return {
+      canManage: true,
+      isAdmin: true,
+      membershipRole: null,
+    };
+  }
+
+  const membership = await prisma.membership.findUnique({
+    where: { userId_clubId: { userId, clubId } },
+    select: { role: true, status: true },
+  });
+
+  return {
+    canManage: Boolean(membership && membership.status === "ACTIVE" && canManageClubMembershipRole(membership.role)),
+    isAdmin: false,
+    membershipRole: membership?.status === "ACTIVE" ? membership.role : null,
+  };
 }
 
 function normalizeApplicationFields(fields: any[]) {
@@ -67,7 +89,12 @@ export async function createPost(clubId: string, title: string, content: string)
     if (!club) return { error: "Club not found" };
 
     const post = await prisma.post.create({
-      data: { clubId, authorId: session.user.id, title, content },
+      data: {
+        clubId,
+        authorId: session.user.id,
+        title: normalizeSingleLineText(title, { maxLength: 120 }),
+        content: normalizeMultilineText(content, { maxLength: 5000 }),
+      },
       include: { author: { select: { name: true, image: true } } },
     });
 
@@ -116,7 +143,10 @@ export async function updatePost(postId: string, title: string, content: string)
   try {
     const updatedPost = await prisma.post.update({
       where: { id: postId },
-      data: { title: title.trim(), content: content.trim() },
+      data: {
+        title: normalizeSingleLineText(title, { maxLength: 120 }),
+        content: normalizeMultilineText(content, { maxLength: 5000 }),
+      },
       include: { author: { select: { name: true, image: true } } },
     });
     revalidatePath("/clubs");
@@ -166,9 +196,9 @@ export async function createClubEvent(
     const event = await prisma.event.create({
       data: {
         clubId,
-        title: data.title.trim(),
-        description: data.description?.trim() || null,
-        location: data.location?.trim() || null,
+        title: normalizeSingleLineText(data.title, { maxLength: 120 }),
+        description: normalizeMultilineText(data.description ?? "", { maxLength: 2000 }) || null,
+        location: normalizeSingleLineText(data.location ?? "", { maxLength: 120 }) || null,
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
       },
@@ -205,9 +235,9 @@ export async function updateClubEvent(
     const updatedEvent = await prisma.event.update({
       where: { id: eventId },
       data: {
-        title: data.title.trim(),
-        description: data.description?.trim() || null,
-        location: data.location?.trim() || null,
+        title: normalizeSingleLineText(data.title, { maxLength: 120 }),
+        description: normalizeMultilineText(data.description ?? "", { maxLength: 2000 }) || null,
+        location: normalizeSingleLineText(data.location ?? "", { maxLength: 120 }) || null,
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
       },
@@ -268,14 +298,19 @@ export async function createClubResource(
     return { error: "You must be a club leader to add resources" };
   }
 
+  const resourceUrl = normalizeHttpsUrl(data.url);
+  if (!resourceUrl) {
+    return { error: "Use a valid https:// URL for club resources." };
+  }
+
   try {
     const resource = await prisma.resource.create({
       data: {
         clubId,
         uploaderId: session.user.id,
-        name: data.name.trim(),
-        url: data.url.trim(),
-        description: data.description?.trim() || null,
+        name: normalizeSingleLineText(data.name, { maxLength: 120 }),
+        url: resourceUrl,
+        description: normalizeMultilineText(data.description ?? "", { maxLength: 2000 }) || null,
         type: data.type ?? "LINK",
         category: data.category ?? "RESOURCE",
         dueAt: data.dueAt ? new Date(data.dueAt) : null,
@@ -316,13 +351,18 @@ export async function updateClubResource(
     return { error: "You must be a club leader to edit resources" };
   }
 
+  const resourceUrl = normalizeHttpsUrl(data.url);
+  if (!resourceUrl) {
+    return { error: "Use a valid https:// URL for club resources." };
+  }
+
   try {
     const updatedResource = await prisma.resource.update({
       where: { id: resourceId },
       data: {
-        name: data.name.trim(),
-        url: data.url.trim(),
-        description: data.description?.trim() || null,
+        name: normalizeSingleLineText(data.name, { maxLength: 120 }),
+        url: resourceUrl,
+        description: normalizeMultilineText(data.description ?? "", { maxLength: 2000 }) || null,
         type: data.type ?? "LINK",
         category: data.category ?? "RESOURCE",
         dueAt: data.dueAt ? new Date(data.dueAt) : null,
@@ -353,8 +393,8 @@ export async function updateClubWorkspace(
     const club = await prisma.club.update({
       where: { id: clubId },
       data: {
-        workspaceTitle: data.workspaceTitle?.trim() || null,
-        workspaceDescription: data.workspaceDescription?.trim() || null,
+        workspaceTitle: normalizeSingleLineText(data.workspaceTitle ?? "", { maxLength: 120 }) || null,
+        workspaceDescription: normalizeMultilineText(data.workspaceDescription ?? "", { maxLength: 1000 }) || null,
       },
       select: {
         workspaceTitle: true,
@@ -375,8 +415,26 @@ export async function updateClubWorkspace(
 export async function updateClubMemberRole(clubId: string, memberUserId: string, role: MembershipRole) {
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };
-  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+  const management = await getClubManagementContext(clubId, session.user.id, session.user.role);
+  if (!management.canManage) {
     return { error: "You must be a club leader to manage members" };
+  }
+
+  const targetMembership = await prisma.membership.findUnique({
+    where: { userId_clubId: { userId: memberUserId, clubId } },
+    select: { role: true },
+  });
+  if (!targetMembership) return { error: "Member not found" };
+
+  if (
+    !canTransitionClubMemberRole({
+      isAdmin: management.isAdmin,
+      actorRole: management.membershipRole,
+      targetCurrentRole: targetMembership.role,
+      nextRole: role,
+    })
+  ) {
+    return { error: "You do not have permission to assign that club role." };
   }
 
   try {
@@ -395,12 +453,30 @@ export async function updateClubMemberRole(clubId: string, memberUserId: string,
 export async function removeClubMember(clubId: string, memberUserId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Not authenticated" };
-  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+  const management = await getClubManagementContext(clubId, session.user.id, session.user.role);
+  if (!management.canManage) {
     return { error: "You must be a club leader to manage members" };
   }
 
   if (memberUserId === session.user.id) {
     return { error: "Use Leave Club if you want to remove yourself." };
+  }
+
+  const targetMembership = await prisma.membership.findUnique({
+    where: { userId_clubId: { userId: memberUserId, clubId } },
+    select: { role: true },
+  });
+  if (!targetMembership) return { error: "Member not found" };
+
+  if (
+    !canTransitionClubMemberRole({
+      isAdmin: management.isAdmin,
+      actorRole: management.membershipRole,
+      targetCurrentRole: targetMembership.role,
+      nextRole: "MEMBER",
+    })
+  ) {
+    return { error: "You do not have permission to remove that member." };
   }
 
   try {
@@ -473,7 +549,14 @@ export async function submitApplication(clubId: string, responses: Record<string
 
   try {
     await prisma.application.create({
-      data: { clubId, applicantId: session.user.id, responses, status: "SUBMITTED" },
+      data: {
+        clubId,
+        applicantId: session.user.id,
+        responses: Object.fromEntries(
+          Object.entries(responses).map(([key, value]) => [key, normalizeMultilineText(String(value ?? ""), { maxLength: 2000 })])
+        ),
+        status: "SUBMITTED",
+      },
     });
     revalidatePath(`/clubs/${club.slug}`);
     revalidatePath(`/applications`);

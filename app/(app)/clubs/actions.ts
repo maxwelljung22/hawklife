@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { canAccessAdmin } from "@/lib/roles";
+import { normalizeMultilineText, normalizeSingleLineText, normalizeThemeColor } from "@/lib/sanitize";
 
 export async function joinClub(clubId: string) {
   const session = await auth();
@@ -66,25 +67,29 @@ export async function createClub(data: {
   const session = await auth();
   if (!session?.user || !canAccessAdmin(session.user.role)) return { error: "Unauthorized" };
 
+  const gradientFrom = normalizeThemeColor(data.gradientFrom ?? "#1a3a6e");
+  const gradientTo = normalizeThemeColor(data.gradientTo ?? "#0c2a52");
+  if (!gradientFrom || !gradientTo) return { error: "Use valid hex colors for the club theme." };
+
   const slug = data.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 
   try {
     const club = await prisma.club.create({
       data: {
         slug,
-        name: data.name,
+        name: normalizeSingleLineText(data.name, { maxLength: 80 }),
         emoji: data.emoji,
-        tagline: data.tagline,
-        description: data.description,
+        tagline: normalizeSingleLineText(data.tagline, { maxLength: 140 }),
+        description: normalizeMultilineText(data.description, { maxLength: 4000 }),
         category: data.category as any,
         commitment: data.commitment as any,
-        meetingDay: data.meetingDay,
-        meetingTime: data.meetingTime,
-        meetingRoom: data.meetingRoom,
+        meetingDay: normalizeSingleLineText(data.meetingDay, { maxLength: 40 }),
+        meetingTime: normalizeSingleLineText(data.meetingTime, { maxLength: 40 }),
+        meetingRoom: normalizeSingleLineText(data.meetingRoom, { maxLength: 80 }),
         requiresApp: data.requiresApp,
         tags: data.tags,
-        gradientFrom: data.gradientFrom ?? "#1a3a6e",
-        gradientTo: data.gradientTo ?? "#0c2a52",
+        gradientFrom,
+        gradientTo,
       },
     });
 
@@ -107,6 +112,11 @@ export async function updateClub(clubId: string, data: Partial<{
   if (!session?.user || !canAccessAdmin(session.user.role)) return { error: "Unauthorized" };
 
   try {
+    const gradientFrom = data.gradientFrom ? normalizeThemeColor(data.gradientFrom) : undefined;
+    const gradientTo = data.gradientTo ? normalizeThemeColor(data.gradientTo) : undefined;
+    if (data.gradientFrom && !gradientFrom) return { error: "Use a valid hex color for the club theme." };
+    if (data.gradientTo && !gradientTo) return { error: "Use a valid hex color for the club theme." };
+
     const slug = data.name
       ? data.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim()
       : undefined;
@@ -114,7 +124,20 @@ export async function updateClub(clubId: string, data: Partial<{
     const club = await prisma.club.update({
       where: { id: clubId },
       data: {
-        ...(data as any),
+        ...(data.name ? { name: normalizeSingleLineText(data.name, { maxLength: 80 }) } : {}),
+        ...(data.tagline !== undefined ? { tagline: normalizeSingleLineText(data.tagline, { maxLength: 140 }) } : {}),
+        ...(data.description !== undefined ? { description: normalizeMultilineText(data.description, { maxLength: 4000 }) } : {}),
+        ...(data.meetingDay !== undefined ? { meetingDay: normalizeSingleLineText(data.meetingDay, { maxLength: 40 }) } : {}),
+        ...(data.meetingTime !== undefined ? { meetingTime: normalizeSingleLineText(data.meetingTime, { maxLength: 40 }) } : {}),
+        ...(data.meetingRoom !== undefined ? { meetingRoom: normalizeSingleLineText(data.meetingRoom, { maxLength: 80 }) } : {}),
+        ...(gradientFrom ? { gradientFrom } : {}),
+        ...(gradientTo ? { gradientTo } : {}),
+        ...(data.category !== undefined ? { category: data.category as any } : {}),
+        ...(data.commitment !== undefined ? { commitment: data.commitment as any } : {}),
+        ...(data.requiresApp !== undefined ? { requiresApp: data.requiresApp } : {}),
+        ...(data.tags !== undefined ? { tags: data.tags } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.emoji !== undefined ? { emoji: data.emoji } : {}),
         ...(slug ? { slug } : {}),
       },
     });

@@ -31,6 +31,43 @@ export function canManageClubMembershipRole(role?: MembershipRole | null) {
   return role === "PRESIDENT" || role === "OFFICER" || role === "FACULTY_ADVISOR";
 }
 
+function getClubMembershipRank(role?: MembershipRole | null) {
+  switch (role) {
+    case "FACULTY_ADVISOR":
+      return 3;
+    case "PRESIDENT":
+      return 2;
+    case "OFFICER":
+      return 1;
+    case "MEMBER":
+    default:
+      return 0;
+  }
+}
+
+export function canTransitionClubMemberRole(options: {
+  isAdmin?: boolean;
+  actorRole?: MembershipRole | null;
+  targetCurrentRole?: MembershipRole | null;
+  nextRole?: MembershipRole | null;
+}) {
+  if (options.isAdmin) return true;
+
+  const actorRole = options.actorRole;
+  const targetCurrentRole = options.targetCurrentRole ?? "MEMBER";
+  const nextRole = options.nextRole ?? "MEMBER";
+
+  if (!canManageClubMembershipRole(actorRole)) return false;
+  if (nextRole === "FACULTY_ADVISOR" || nextRole === "PRESIDENT") return false;
+  if (targetCurrentRole === "FACULTY_ADVISOR" || targetCurrentRole === "PRESIDENT") return false;
+
+  const actorRank = getClubMembershipRank(actorRole);
+  const targetRank = getClubMembershipRank(targetCurrentRole);
+  const nextRank = getClubMembershipRank(nextRole);
+
+  return actorRank > targetRank && actorRank > nextRank;
+}
+
 export function getClubLeadershipRoleLabel(role?: MembershipRole | null) {
   switch (role) {
     case "PRESIDENT":

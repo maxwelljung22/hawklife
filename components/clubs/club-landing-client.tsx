@@ -7,6 +7,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight, Clock3, Mail, MapPin, Shield, Sparkles, Users, X } from "lucide-react";
 import { joinClub, leaveClub } from "@/app/(app)/clubs/actions";
 import { removeClubMember, updateClubMemberRole } from "@/app/(app)/clubs/[slug]/actions";
+import { normalizeHttpsUrl, normalizeThemeColor } from "@/lib/sanitize";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -57,6 +58,9 @@ export function ClubLandingClient({
   const { toast } = useToast();
   const isAdmin = userRole === "ADMIN";
   const canManageMembers = isAdmin || isLeader;
+  const safeBannerUrl = normalizeHttpsUrl(club.bannerUrl);
+  const safeGradientFrom = normalizeThemeColor(club.gradientFrom) ?? "#1a3a6e";
+  const safeGradientTo = normalizeThemeColor(club.gradientTo) ?? "#0c2a52";
 
   const handleMembership = () => {
     const next = !joined;
@@ -92,9 +96,9 @@ export function ClubLandingClient({
         <div
           className="absolute inset-0"
           style={{
-            background: club.bannerUrl
-              ? `linear-gradient(135deg, rgba(0,0,0,0.72), rgba(0,0,0,0.44)), url(${club.bannerUrl}) center/cover`
-              : `linear-gradient(135deg, ${club.gradientFrom}, ${club.gradientTo})`,
+            background: safeBannerUrl
+              ? `linear-gradient(135deg, rgba(0,0,0,0.72), rgba(0,0,0,0.44)), url(${safeBannerUrl}) center/cover`
+              : `linear-gradient(135deg, ${safeGradientFrom}, ${safeGradientTo})`,
           }}
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_32%),linear-gradient(180deg,transparent,rgba(0,0,0,0.3))]" />

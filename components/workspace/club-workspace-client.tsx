@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeHttpsUrl, normalizeThemeColor } from "@/lib/sanitize";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import {
   createWorkspaceAssignment,
@@ -72,6 +73,10 @@ function parseAttachmentInput(value: string) {
     .filter(Boolean);
 }
 
+function getSafeThemeColor(value: string, fallback: string) {
+  return normalizeThemeColor(value) ?? fallback;
+}
+
 function WorkspaceSection({
   title,
   description,
@@ -118,11 +123,12 @@ function EmptyState({
 }
 
 function AttachmentsList({ attachments }: { attachments?: { url: string; label?: string }[] | null }) {
-  if (!attachments?.length) return null;
+  const safeAttachments = (attachments ?? []).filter((attachment) => normalizeHttpsUrl(attachment.url));
+  if (!safeAttachments.length) return null;
 
   return (
     <div className="mt-4 flex flex-wrap gap-2">
-      {attachments.map((attachment, index) => (
+      {safeAttachments.map((attachment, index) => (
         <a
           key={`${attachment.url}-${index}`}
           href={attachment.url}
@@ -868,26 +874,36 @@ function ResourcesTab({
         />
       ) : resourceView === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {resources.map((resource) => (
-            <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" className="group rounded-[1.5rem] border border-border/80 bg-background/75 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{resource.category}</p>
-              <p className="mt-3 text-[1rem] font-semibold text-foreground group-hover:text-[hsl(var(--primary))]">{resource.name}</p>
-              {resource.description ? <p className="mt-2 text-[13px] leading-6 text-muted-foreground">{resource.description}</p> : null}
-              <p className="mt-4 text-[12px] text-muted-foreground">{resource.type.toLowerCase()}</p>
-            </a>
-          ))}
+          {resources.map((resource) => {
+            const resourceUrl = normalizeHttpsUrl(resource.url);
+            if (!resourceUrl) return null;
+
+            return (
+              <a key={resource.id} href={resourceUrl} target="_blank" rel="noopener noreferrer" className="group rounded-[1.5rem] border border-border/80 bg-background/75 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{resource.category}</p>
+                <p className="mt-3 text-[1rem] font-semibold text-foreground group-hover:text-[hsl(var(--primary))]">{resource.name}</p>
+                {resource.description ? <p className="mt-2 text-[13px] leading-6 text-muted-foreground">{resource.description}</p> : null}
+                <p className="mt-4 text-[12px] text-muted-foreground">{resource.type.toLowerCase()}</p>
+              </a>
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-3">
-          {resources.map((resource) => (
-            <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between rounded-[1.4rem] border border-border/80 bg-background/75 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
-              <div>
-                <p className="text-[0.98rem] font-semibold text-foreground group-hover:text-[hsl(var(--primary))]">{resource.name}</p>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">{resource.category} · {resource.type.toLowerCase()}</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </a>
-          ))}
+          {resources.map((resource) => {
+            const resourceUrl = normalizeHttpsUrl(resource.url);
+            if (!resourceUrl) return null;
+
+            return (
+              <a key={resource.id} href={resourceUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between rounded-[1.4rem] border border-border/80 bg-background/75 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+                <div>
+                  <p className="text-[0.98rem] font-semibold text-foreground group-hover:text-[hsl(var(--primary))]">{resource.name}</p>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">{resource.category} · {resource.type.toLowerCase()}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </a>
+            );
+          })}
         </div>
       )}
     </WorkspaceSection>
@@ -932,10 +948,13 @@ function CustomizeTab({
   const [form, setForm] = useState({
     workspaceTitle: club.workspaceTitle ?? `${club.name} Workspace`,
     workspaceDescription: club.workspaceDescription ?? "",
-    bannerUrl: club.bannerUrl ?? "",
-    gradientFrom: club.gradientFrom,
-    gradientTo: club.gradientTo,
+    bannerUrl: normalizeHttpsUrl(club.bannerUrl) ?? "",
+    gradientFrom: getSafeThemeColor(club.gradientFrom, "#1a3a6e"),
+    gradientTo: getSafeThemeColor(club.gradientTo, "#0c2a52"),
   });
+  const previewBannerUrl = normalizeHttpsUrl(form.bannerUrl);
+  const previewGradientFrom = getSafeThemeColor(form.gradientFrom, "#1a3a6e");
+  const previewGradientTo = getSafeThemeColor(form.gradientTo, "#0c2a52");
 
   if (!isLeader) {
     return <EmptyState title="Leaders can customize the workspace" description="Accent color, banner image, and workspace messaging are controlled by club leaders." />;
@@ -948,9 +967,9 @@ function CustomizeTab({
           <div
             className="rounded-[1.4rem] p-6 text-white"
             style={{
-              background: form.bannerUrl
-                ? `linear-gradient(135deg, rgba(0,0,0,0.56), rgba(0,0,0,0.24)), url(${form.bannerUrl}) center/cover`
-                : `linear-gradient(135deg, ${form.gradientFrom}, ${form.gradientTo})`,
+              background: previewBannerUrl
+                ? `linear-gradient(135deg, rgba(0,0,0,0.56), rgba(0,0,0,0.24)), url(${previewBannerUrl}) center/cover`
+                : `linear-gradient(135deg, ${previewGradientFrom}, ${previewGradientTo})`,
             }}
           >
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/70">Preview</p>
