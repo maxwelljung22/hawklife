@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { applySecurityHeaders } from "@/lib/security";
+import { rejectUntrustedOrigin, withStandardApiHeaders } from "@/lib/security";
 import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const session = await auth();
 
   if (!session?.user?.id) {
-    return applySecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+    return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
 
   try {
@@ -25,5 +28,5 @@ export async function POST() {
     }
   }
 
-  return applySecurityHeaders(NextResponse.json({ success: true }));
+  return withStandardApiHeaders(NextResponse.json({ success: true }));
 }

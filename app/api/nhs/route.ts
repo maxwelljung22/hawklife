@@ -4,16 +4,17 @@ import { getAllNhsRecords, getNhsRecordForUser } from "@/lib/airtable";
 import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import {
-  applySecurityHeaders,
+  rejectUntrustedOrigin,
   checkRateLimit,
   getRequestIp,
+  withStandardApiHeaders,
   withRateLimitHeaders,
 } from "@/lib/security";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session?.user) {
-    return applySecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+    return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
 
   const { searchParams } = new URL(req.url);
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!rateLimit.success) {
-    return applySecurityHeaders(
+    return withStandardApiHeaders(
       withRateLimitHeaders(
         NextResponse.json({ error: "Too many NHS requests. Please wait a moment." }, { status: 429 }),
         rateLimit
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (all && !canAccessFacultyTools(session.user.role)) {
-    return applySecurityHeaders(
+    return withStandardApiHeaders(
       withRateLimitHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }), rateLimit)
     );
   }
@@ -42,23 +43,26 @@ export async function GET(req: NextRequest) {
   try {
     if (all) {
       const records = await getAllNhsRecords();
-      return applySecurityHeaders(withRateLimitHeaders(NextResponse.json({ records }), rateLimit));
+      return withStandardApiHeaders(withRateLimitHeaders(NextResponse.json({ records }), rateLimit));
     } else {
       const record = await getNhsRecordForUser(session.user.email!, session.user.name);
-      return applySecurityHeaders(withRateLimitHeaders(NextResponse.json({ record }), rateLimit));
+      return withStandardApiHeaders(withRateLimitHeaders(NextResponse.json({ record }), rateLimit));
     }
   } catch (err: any) {
     console.error("[NHS API]", err);
-    return applySecurityHeaders(
+    return withStandardApiHeaders(
       withRateLimitHeaders(NextResponse.json({ error: "Failed to fetch NHS data" }, { status: 500 }), rateLimit)
     );
   }
 }
 
 export async function POST(req: NextRequest) {
+  const originError = rejectUntrustedOrigin(req);
+  if (originError) return originError;
+
   const session = await getSession();
   if (!session?.user || !canAccessAdmin(session.user.role)) {
-    return applySecurityHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
+    return withStandardApiHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
   }
 
   const rateLimit = checkRateLimit({
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
     windowMs: 60_000,
   });
   if (!rateLimit.success) {
-    return applySecurityHeaders(
+    return withStandardApiHeaders(
       withRateLimitHeaders(
         NextResponse.json({ error: "Too many sync attempts. Please wait a minute." }, { status: 429 }),
         rateLimit
@@ -77,5 +81,5 @@ export async function POST(req: NextRequest) {
 
   const { syncNhsNow } = await import("@/lib/airtable");
   const result = await syncNhsNow();
-  return applySecurityHeaders(withRateLimitHeaders(NextResponse.json(result), rateLimit));
+  return withStandardApiHeaders(withRateLimitHeaders(NextResponse.json(result), rateLimit));
 }

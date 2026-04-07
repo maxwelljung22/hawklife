@@ -3,13 +3,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessFacultyTools } from "@/lib/roles";
 import { canManageClubAttendanceSession } from "@/lib/flex-attendance";
-import { applySecurityHeaders } from "@/lib/security";
+import {
+  checkRateLimit,
+  getRequestIp,
+  sanitizeAttachmentFilename,
+  withStandardApiHeaders,
+  withRateLimitHeaders,
+} from "@/lib/security";
 import { buildAttendanceCsv, buildAttendancePdf, buildAttendanceRows } from "@/lib/attendance-export";
 
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user) {
-    return applySecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+    return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
 
   const { searchParams } = new URL(request.url);
@@ -17,7 +23,21 @@ export async function GET(request: Request) {
   const format = searchParams.get("format");
 
   if (!sessionId || !["csv", "pdf"].includes(format || "")) {
-    return applySecurityHeaders(NextResponse.json({ error: "Missing export parameters" }, { status: 400 }));
+    return withStandardApiHeaders(NextResponse.json({ error: "Missing export parameters" }, { status: 400 }));
+  }
+
+  const rateLimit = checkRateLimit({
+    key: `flex-export:${session.user.id}:${getRequestIp(request)}:${sessionId}:${format}`,
+    limit: 12,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.success) {
+    return withStandardApiHeaders(
+      withRateLimitHeaders(
+        NextResponse.json({ error: "Too many export requests. Please wait a moment." }, { status: 429 }),
+        rateLimit
+      )
+    );
   }
 
   const attendanceSession = await prisma.attendanceSession.findUnique({
@@ -43,7 +63,9 @@ export async function GET(request: Request) {
   });
 
   if (!attendanceSession) {
-    return applySecurityHeaders(NextResponse.json({ error: "Session not found" }, { status: 404 }));
+    return withStandardApiHeaders(
+      withRateLimitHeaders(NextResponse.json({ error: "Session not found" }, { status: 404 }), rateLimit)
+    );
   }
 
   const canManage = attendanceSession.clubId
@@ -51,28 +73,37 @@ export async function GET(request: Request) {
     : canAccessFacultyTools(session.user.role) || attendanceSession.createdById === session.user.id;
 
   if (!canManage) {
-    return applySecurityHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
-  }
-
-  const rows = buildAttendanceRows(attendanceSession.records);
-
-  if (format === "csv") {
-    return applySecurityHeaders(
-      new NextResponse(buildAttendanceCsv(attendanceSession.title, rows), {
-        headers: {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${attendanceSession.title.replace(/\s+/g, "-").toLowerCase()}-attendance.csv"`,
-        },
-      })
+    return withStandardApiHeaders(
+      withRateLimitHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }), rateLimit)
     );
   }
 
-  return applySecurityHeaders(
-    new NextResponse(buildAttendancePdf(attendanceSession.title, rows), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${attendanceSession.title.replace(/\s+/g, "-").toLowerCase()}-attendance.pdf"`,
-      },
-    })
+  const rows = buildAttendanceRows(attendanceSession.records);
+  const filenameBase = sanitizeAttachmentFilename(attendanceSession.title, "attendance");
+
+  if (format === "csv") {
+    return withStandardApiHeaders(
+      withRateLimitHeaders(
+        new NextResponse(buildAttendanceCsv(attendanceSession.title, rows), {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="${filenameBase}-attendance.csv"`,
+          },
+        }),
+        rateLimit
+      )
+    );
+  }
+
+  return withStandardApiHeaders(
+    withRateLimitHeaders(
+      new NextResponse(buildAttendancePdf(attendanceSession.title, rows), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filenameBase}-attendance.pdf"`,
+        },
+      }),
+      rateLimit
+    )
   );
 }

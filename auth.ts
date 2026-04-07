@@ -11,7 +11,10 @@ import { getServerSecret } from "@/lib/server-secrets";
 
 const authEnv = getAuthEnv({ strict: false });
 const googleConfigured = Boolean(authEnv.googleClientId && authEnv.googleClientSecret);
-const authSecret = authEnv.nextAuthSecret || getServerSecret("NEXTAUTH_SECRET", "hawklife-dev-secret");
+const authSecret =
+  process.env.NODE_ENV === "production"
+    ? getServerSecret("NEXTAUTH_SECRET", "hawklife-dev-secret")
+    : authEnv.nextAuthSecret || getServerSecret("NEXTAUTH_SECRET", "hawklife-dev-secret");
 
 function isAllowedEmail(email: string): boolean {
   return getDefaultRoleForEmail(email) !== null;
@@ -34,11 +37,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     : [],
   secret: authSecret,
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
       if (!googleConfigured) {
         return "/auth/error?error=Configuration";
       }
       if (!user.email) return false;
+      if (account?.provider === "google" && profile && "email_verified" in profile && profile.email_verified !== true) {
+        return "/auth/error?error=AccessDenied";
+      }
       if (!isAllowedEmail(user.email)) {
         return "/auth/error?error=DomainNotAllowed";
       }
@@ -115,6 +121,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
+  trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === "production",
 });
 
 declare module "next-auth" {
