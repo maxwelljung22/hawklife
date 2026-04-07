@@ -101,6 +101,9 @@ enum AttendanceStatus {
   JOINED
   PRESENT
   LATE
+  ABSENT
+  ABSENT_EXCUSED
+  LATE_EXCUSED
 }
 
 enum WorkspaceTaskStatus {
@@ -195,6 +198,7 @@ model Club {
   slug         String          @unique
   name         String
   shortName    String?
+  logoUrl      String?
   emoji        String          @default("🏛️")
   tagline      String?
   description  String          @db.Text
@@ -210,6 +214,10 @@ model Club {
   gradientFrom String          @default("#0E1B2C")
   gradientTo   String          @default("#152438")
   bannerUrl    String?
+  pendingEditRequest Json?
+  pendingEditSubmittedAt DateTime?
+  pendingEditSubmittedById String?
+  pendingEditStatus String?
   isFlagged    Boolean         @default(false)
   flagReason   String?
   workspaceTitle String?

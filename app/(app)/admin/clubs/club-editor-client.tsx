@@ -26,6 +26,8 @@ const GRADIENT_PRESETS = [
 type ClubEditorValues = {
   id?: string;
   name: string;
+  slug: string;
+  logoUrl: string;
   emoji: string;
   tagline: string;
   description: string;
@@ -112,7 +114,14 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-[28px] overflow-hidden border border-border shadow-card">
             <div className="relative flex h-28 items-end pb-3 pl-4" style={{ background: `linear-gradient(135deg, ${form.gradientFrom}, ${form.gradientTo})` }}>
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[72%] text-5xl">{form.emoji}</div>
+              <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-[72%] items-center justify-center overflow-hidden rounded-[1.25rem] border border-white/15 bg-black/15 text-5xl backdrop-blur-sm">
+                {form.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.logoUrl} alt={`${form.name || "Club"} logo`} className="h-full w-full object-cover" />
+                ) : (
+                  form.emoji
+                )}
+              </div>
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50" />
               <span className="relative rounded-full border border-white/15 bg-white/15 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white/85 backdrop-blur-sm">
                 {form.category.charAt(0) + form.category.slice(1).toLowerCase()}
@@ -135,6 +144,15 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
               </Field>
               <Field label="Club Name *">
                 <input required value={form.name} onChange={set("name")} placeholder="e.g. Model United Nations" className={inputCls} />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="URL Slug *">
+                <input required value={form.slug} onChange={set("slug")} placeholder="model-united-nations" className={inputCls} />
+              </Field>
+              <Field label="Logo URL">
+                <input value={form.logoUrl} onChange={set("logoUrl")} placeholder="https://..." className={inputCls} />
               </Field>
             </div>
 

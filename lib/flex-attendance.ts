@@ -58,6 +58,12 @@ export function getAttendanceStatusLabel(status: AttendanceStatus) {
       return "Present";
     case "LATE":
       return "Late";
+    case "ABSENT":
+      return "Absent";
+    case "ABSENT_EXCUSED":
+      return "Absent Excused";
+    case "LATE_EXCUSED":
+      return "Late Excused";
     case "JOINED":
     default:
       return "Joined";

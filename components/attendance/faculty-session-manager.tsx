@@ -4,8 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import type { AttendanceSessionType, AttendanceStatus } from "@prisma/client";
-import { CalendarDays, CheckCircle2, Clock3, MapPin, Plus, QrCode, Search, Timer, Trash2, Users } from "lucide-react";
+import type { AttendanceSessionType, AttendanceStatus, UserRole } from "@prisma/client";
+import { CalendarDays, CheckCircle2, Clock3, Download, MapPin, Plus, QrCode, Search, Timer, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,8 @@ type SessionItem = {
       id: string;
       name: string | null;
       email: string | null;
+      grade: number | null;
+      graduationYear: number | null;
     };
   }[];
 };
@@ -47,6 +49,7 @@ type SessionItem = {
 export function FacultySessionManager({
   clubs,
   students,
+  currentRole,
   sessions,
 }: {
   clubs: ClubOption[];
@@ -54,7 +57,10 @@ export function FacultySessionManager({
     id: string;
     name: string | null;
     email: string | null;
+    grade: number | null;
+    graduationYear: number | null;
   }[];
+  currentRole: UserRole;
   sessions: SessionItem[];
 }) {
   const router = useRouter();
@@ -63,6 +69,9 @@ export function FacultySessionManager({
   const [selectedQrSessionId, setSelectedQrSessionId] = useState<string | null>(sessions[0]?.id ?? null);
   const [studentQuery, setStudentQuery] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [classFilter, setClassFilter] = useState("all");
+  const [bulkStudentIds, setBulkStudentIds] = useState<string[]>([]);
+  const isAdmin = currentRole === "ADMIN";
   const [form, setForm] = useState({
     title: "",
     type: "STUDY_HALL" as AttendanceSessionType,
@@ -79,14 +88,42 @@ export function FacultySessionManager({
   const selectedQrSession = sessions.find((session) => session.id === selectedQrSessionId) ?? null;
   const availableStudents = useMemo(() => {
     const query = studentQuery.trim().toLowerCase();
-    if (!query) return students.slice(0, 10);
+    const classFiltered = classFilter === "all"
+      ? students
+      : students.filter((student) => String(student.graduationYear ?? "") === classFilter);
+    if (!query) return classFiltered.slice(0, 30);
 
-    return students
+    return classFiltered
       .filter((student) =>
         [student.name ?? "", student.email ?? ""].some((value) => value.toLowerCase().includes(query))
       )
-      .slice(0, 10);
-  }, [studentQuery, students]);
+      .slice(0, 30);
+  }, [classFilter, studentQuery, students]);
+
+  const signedUpUserIds = useMemo(
+    () => new Set(sessions.flatMap((session) => session.attendees.map((attendee) => attendee.user.id))),
+    [sessions]
+  );
+
+  const unsignedStudents = useMemo(
+    () => students.filter((student) => !signedUpUserIds.has(student.id)),
+    [signedUpUserIds, students]
+  );
+
+  const selectedSessionUnsignedStudents = useMemo(() => {
+    if (!selectedQrSession) return [];
+    const currentIds = new Set(selectedQrSession.attendees.map((attendee) => attendee.user.id));
+    return students.filter((student) => !currentIds.has(student.id));
+  }, [selectedQrSession, students]);
+
+  const attendanceSummary = useMemo(() => {
+    if (!selectedQrSession) return null;
+    return {
+      absent: selectedQrSession.attendees.filter((attendee) => attendee.status === "ABSENT"),
+      absentExcused: selectedQrSession.attendees.filter((attendee) => attendee.status === "ABSENT_EXCUSED"),
+      lateExcused: selectedQrSession.attendees.filter((attendee) => attendee.status === "LATE_EXCUSED"),
+    };
+  }, [selectedQrSession]);
 
   const handleCreate = () => {
     startTransition(async () => {
@@ -144,13 +181,13 @@ export function FacultySessionManager({
     });
   };
 
-  const handleManualMark = (status: AttendanceStatus, userId?: string) => {
+  const handleManualMark = (status: AttendanceStatus, userId?: string | string[]) => {
     if (!selectedQrSession) return;
-    const targetUserId = userId ?? selectedStudentId;
-    if (!targetUserId) {
+    const targetUserId = userId ?? (bulkStudentIds.length > 0 ? bulkStudentIds : selectedStudentId);
+    if (!targetUserId || (Array.isArray(targetUserId) && targetUserId.length === 0)) {
       toast({
         title: "Choose a student first",
-        description: "Pick a student to mark present or late.",
+        description: "Pick one or more students to update attendance.",
         variant: "destructive",
       });
       return;
@@ -169,10 +206,13 @@ export function FacultySessionManager({
 
       toast({
         title: "Attendance updated",
-        description: `${result.studentName} marked ${status.toLowerCase()} for ${result.title}.`,
+        description: result.updatedCount > 1
+          ? `${result.updatedCount} students marked ${status.toLowerCase().replaceAll("_", " ")} for ${result.title}.`
+          : `${result.studentName} marked ${status.toLowerCase().replaceAll("_", " ")} for ${result.title}.`,
       });
       setSelectedStudentId("");
       setStudentQuery("");
+      setBulkStudentIds([]);
       router.refresh();
     });
   };
@@ -183,9 +223,20 @@ export function FacultySessionManager({
         return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
       case "LATE":
         return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      case "ABSENT":
+        return "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+      case "ABSENT_EXCUSED":
+        return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      case "LATE_EXCUSED":
+        return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
       default:
         return "bg-muted text-muted-foreground";
     }
+  };
+
+  const exportAttendance = (format: "csv" | "pdf") => {
+    if (!selectedQrSession) return;
+    window.location.href = `/api/flex/export?sessionId=${selectedQrSession.id}&format=${format}`;
   };
 
   return (
@@ -338,7 +389,15 @@ export function FacultySessionManager({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => exportAttendance("csv")}>
+                          <Download className="h-4 w-4" />
+                          Spreadsheet
+                        </Button>
+                        <Button variant="secondary" onClick={() => exportAttendance("pdf")}>
+                          <Download className="h-4 w-4" />
+                          PDF
+                        </Button>
                         <Button variant="secondary" onClick={() => setSelectedQrSessionId(session.id)}>
                           <QrCode className="h-4 w-4" />
                           Show QR
@@ -392,9 +451,21 @@ export function FacultySessionManager({
 
                     <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                       <div className="rounded-[28px] border border-border bg-muted/35 p-4 sm:p-5">
-                        <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Search student
-                        </label>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                          <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            Search student
+                          </label>
+                          <select
+                            value={classFilter}
+                            onChange={(event) => setClassFilter(event.target.value)}
+                            className="rounded-xl border border-border bg-background px-3 py-2 text-[12px] text-foreground outline-none"
+                          >
+                            <option value="all">All classes</option>
+                            {[2026, 2027, 2028, 2029].map((year) => (
+                              <option key={year} value={year}>Class of {year}</option>
+                            ))}
+                          </select>
+                        </div>
                         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border bg-background px-3">
                           <Search className="h-4 w-4 text-muted-foreground" />
                           <input
@@ -420,12 +491,37 @@ export function FacultySessionManager({
                               >
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-medium text-foreground">{student.name || "Unnamed student"}</p>
-                                  <p className="truncate text-xs text-muted-foreground">{student.email || "No email"}</p>
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {student.email || "No email"}{student.graduationYear ? ` · Class of ${student.graduationYear}` : ""}
+                                  </p>
                                 </div>
                                 {active ? <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary))]" /> : null}
                               </button>
                             );
                           })}
+                        </div>
+
+                        <div className="mt-4 rounded-[24px] border border-border bg-background px-4 py-3">
+                          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Mass select by class</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {[2026, 2027, 2028, 2029].map((year) => (
+                              <button
+                                key={year}
+                                type="button"
+                                onClick={() =>
+                                  setBulkStudentIds(
+                                    availableStudents
+                                      .filter((student) => student.graduationYear === year)
+                                      .map((student) => student.id)
+                                  )
+                                }
+                                className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+                              >
+                                Class of {year}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="mt-2 text-[12px] text-muted-foreground">{bulkStudentIds.length} students selected for bulk actions</p>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -437,6 +533,19 @@ export function FacultySessionManager({
                             <Timer className="h-4 w-4" />
                             Mark late
                           </Button>
+                          <Button variant="secondary" size="lg" onClick={() => handleManualMark("ABSENT")} disabled={isPending || (!selectedStudentId && bulkStudentIds.length === 0)}>
+                            Mark absent
+                          </Button>
+                          {isAdmin ? (
+                            <Button variant="secondary" size="lg" onClick={() => handleManualMark("ABSENT_EXCUSED")} disabled={isPending || (!selectedStudentId && bulkStudentIds.length === 0)}>
+                              Absent excused
+                            </Button>
+                          ) : null}
+                          {isAdmin ? (
+                            <Button variant="secondary" size="lg" onClick={() => handleManualMark("LATE_EXCUSED")} disabled={isPending || (!selectedStudentId && bulkStudentIds.length === 0)}>
+                              Late excused
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
 
@@ -445,6 +554,28 @@ export function FacultySessionManager({
                           <div>
                             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recorded attendees</p>
                             <p className="mt-1 text-sm text-muted-foreground">Joined and manually marked students for this session.</p>
+                          </div>
+                          <div className="rounded-full border border-border bg-muted/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                            {selectedSessionUnsignedStudents.length} not signed up
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-[20px] border border-border bg-muted/35 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Not signed up</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{selectedSessionUnsignedStudents.length}</p>
+                          </div>
+                          <div className="rounded-[20px] border border-border bg-muted/35 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Absent</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{attendanceSummary?.absent.length ?? 0}</p>
+                          </div>
+                          <div className="rounded-[20px] border border-border bg-muted/35 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Absent Excused</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{attendanceSummary?.absentExcused.length ?? 0}</p>
+                          </div>
+                          <div className="rounded-[20px] border border-border bg-muted/35 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Late Excused</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{attendanceSummary?.lateExcused.length ?? 0}</p>
                           </div>
                         </div>
 
@@ -462,7 +593,9 @@ export function FacultySessionManager({
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                   <div className="min-w-0">
                                     <p className="truncate text-sm font-medium text-foreground">{attendee.user.name || "Unnamed student"}</p>
-                                    <p className="truncate text-xs text-muted-foreground">{attendee.user.email || "No email"}</p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                      {attendee.user.email || "No email"}{attendee.user.graduationYear ? ` · Class of ${attendee.user.graduationYear}` : ""}
+                                    </p>
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium", getStatusClass(attendee.status))}>
@@ -483,6 +616,19 @@ export function FacultySessionManager({
                                   <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE", attendee.user.id)} disabled={isPending}>
                                     Mark late
                                   </Button>
+                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT", attendee.user.id)} disabled={isPending}>
+                                    Absent
+                                  </Button>
+                                  {isAdmin ? (
+                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT_EXCUSED", attendee.user.id)} disabled={isPending}>
+                                      Absent excused
+                                    </Button>
+                                  ) : null}
+                                  {isAdmin ? (
+                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE_EXCUSED", attendee.user.id)} disabled={isPending}>
+                                      Late excused
+                                    </Button>
+                                  ) : null}
                                 </div>
                               </div>
                             ))

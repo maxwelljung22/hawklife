@@ -81,7 +81,7 @@ function SidebarNavContent({
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   };
 
-  const renderNavItem = (item: NavItem, emphasis: "default" | "oversight" = "default") => (
+  const renderNavItem = (item: NavItem, emphasis: "default" | "faculty" = "default") => (
     <Link
       key={item.href}
       href={item.href}
@@ -109,10 +109,10 @@ function SidebarNavContent({
         style={{
           background: isActive(item)
             ? "linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.18))"
-            : emphasis === "oversight"
+            : emphasis === "faculty"
               ? "hsl(var(--primary) / 0.10)"
               : "hsl(var(--muted) / 0.9)",
-          color: isActive(item) || emphasis === "oversight" ? "hsl(var(--primary))" : "currentColor",
+          color: isActive(item) || emphasis === "faculty" ? "hsl(var(--primary))" : "currentColor",
         }}
       >
         {item.icon}
@@ -169,10 +169,10 @@ function SidebarNavContent({
         {canAccessOversight(user.role) && (
           <div className="space-y-1.5">
             <p className="px-3 text-[9.5px] font-bold uppercase tracking-[0.14em]" style={{ color: "hsl(var(--shell-sidebar-muted))" }}>
-              Oversight
+              Faculty Controls
             </p>
             {ADMIN_ITEMS.filter((item) => item.href !== "/admin/charters" || canAccessAdmin(user.role)).map((item) =>
-              renderNavItem(item, "oversight")
+              renderNavItem(item, "faculty")
             )}
           </div>
         )}

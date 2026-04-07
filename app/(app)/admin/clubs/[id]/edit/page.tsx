@@ -21,6 +21,8 @@ export default async function EditClubPage({ params }: Props) {
     select: {
       id: true,
       name: true,
+      slug: true,
+      logoUrl: true,
       emoji: true,
       tagline: true,
       description: true,
@@ -44,6 +46,8 @@ export default async function EditClubPage({ params }: Props) {
       initialValues={{
         id: club.id,
         name: club.name,
+        slug: club.slug,
+        logoUrl: club.logoUrl ?? "",
         emoji: club.emoji,
         tagline: club.tagline ?? "",
         description: club.description,

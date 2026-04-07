@@ -14,6 +14,8 @@ export default async function NewClubPage() {
       mode="create"
       initialValues={{
         name: "",
+        slug: "",
+        logoUrl: "",
         emoji: "🏛️",
         tagline: "",
         description: "",

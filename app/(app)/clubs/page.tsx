@@ -33,6 +33,7 @@ async function getClubs(userId: string, params: SearchParams) {
     id: true,
     slug: true,
     name: true,
+    logoUrl: true,
     emoji: true,
     tagline: true,
     description: true,

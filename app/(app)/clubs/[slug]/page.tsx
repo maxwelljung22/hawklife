@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canAccessAdmin, canManageClubMembershipRole } from "@/lib/roles";
 import { ClubLandingClient } from "@/components/clubs/club-landing-client";
-import { isV4Enabled } from "@/lib/feature-flags";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -15,6 +14,7 @@ async function getClubByIdentifier(identifier: string, userId: string, userRole:
     id: true,
     slug: true,
     name: true,
+    logoUrl: true,
     emoji: true,
     tagline: true,
     description: true,
@@ -28,6 +28,10 @@ async function getClubByIdentifier(identifier: string, userId: string, userRole:
     gradientFrom: true,
     gradientTo: true,
     bannerUrl: true,
+    pendingEditRequest: true,
+    pendingEditSubmittedAt: true,
+    pendingEditSubmittedById: true,
+    pendingEditStatus: true,
     _count: { select: { memberships: { where: { status: "ACTIVE" } } } },
     memberships: {
       where: { status: "ACTIVE" },
@@ -169,5 +173,5 @@ export default async function ClubPage({ params }: Props) {
   const data = await getClubByIdentifier(slug, session.user.id, session.user.role);
   if (!data) notFound();
 
-  return <ClubLandingClient {...data} userId={session.user.id} userRole={session.user.role} v4Enabled={isV4Enabled()} />;
+  return <ClubLandingClient {...data} userId={session.user.id} userRole={session.user.role} />;
 }

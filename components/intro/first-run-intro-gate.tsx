@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { completeAccountSetup } from "@/app/(app)/profile/actions";
 import { cn } from "@/lib/utils";
 
 const INTRO_FEATURES = [
@@ -448,21 +449,26 @@ export function FirstRunIntroGate({
   children,
   userId,
   shouldShowInitially,
+  shouldRequireAccountSetup,
 }: {
   children: ReactNode;
   userId: string;
   shouldShowInitially: boolean;
+  shouldRequireAccountSetup: boolean;
 }) {
   const storageKey = `hawklife:intro-seen:${userId}`;
   const [shouldShow, setShouldShow] = useState(false);
+  const [shouldShowAccountSetup, setShouldShowAccountSetup] = useState(false);
+  const [isSavingSetup, setIsSavingSetup] = useState(false);
   const [ready, setReady] = useState(false);
   const persistedRef = useRef(false);
 
   useEffect(() => {
     const storedValue = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
     setShouldShow(shouldShowInitially && storedValue !== "true");
+    setShouldShowAccountSetup(shouldRequireAccountSetup && !(shouldShowInitially && storedValue !== "true"));
     setReady(true);
-  }, [shouldShowInitially, storageKey]);
+  }, [shouldRequireAccountSetup, shouldShowInitially, storageKey]);
 
   useEffect(() => {
     if (!shouldShow) return;
@@ -496,11 +502,66 @@ export function FirstRunIntroGate({
     }
   };
 
+  const handleDismissIntro = () => {
+    setShouldShow(false);
+    if (shouldRequireAccountSetup) {
+      setShouldShowAccountSetup(true);
+    }
+  };
+
+  const handleSelectClass = async (graduationYear: number) => {
+    setIsSavingSetup(true);
+    const result = await completeAccountSetup(graduationYear);
+    setIsSavingSetup(false);
+    if (result?.error) return;
+    setShouldShowAccountSetup(false);
+  };
+
   return (
     <>
       {children}
       {ready ? (
-        <AnimatePresence>{shouldShow ? <IntroSequence onDismiss={() => setShouldShow(false)} persistSeen={persistSeen} /> : null}</AnimatePresence>
+        <AnimatePresence>
+          {shouldShow ? <IntroSequence onDismiss={handleDismissIntro} persistSeen={persistSeen} /> : null}
+          {shouldShowAccountSetup ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[205] flex items-center justify-center bg-[rgba(4,7,13,0.72)] px-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,24,0.98))] p-6 text-white shadow-[0_40px_120px_rgba(0,0,0,0.38)] sm:p-8"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#f8c96d]/72">Account Setup</p>
+                <h2 className="mt-4 text-balance font-display text-[clamp(2rem,6vw,3.6rem)] font-semibold tracking-[-0.06em] text-white">
+                  Pick your class year.
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-white/62 sm:text-[15px]">
+                  We use this to personalize your dashboard, attendance tools, and class-based experiences across HawkLife.
+                </p>
+
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  {[2027, 2028, 2026, 2029].map((graduationYear) => (
+                    <button
+                      key={graduationYear}
+                      type="button"
+                      disabled={isSavingSetup}
+                      onClick={() => handleSelectClass(graduationYear)}
+                      className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.08] disabled:opacity-60"
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/44">Class</p>
+                      <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-white">Class of {graduationYear}</p>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       ) : null}
     </>
   );

@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { CalendarDays, ChevronRight, Clock3, Mail, MapPin, Shield, Sparkles, Users, X } from "lucide-react";
 import { joinClub, leaveClub } from "@/app/(app)/clubs/actions";
-import { removeClubMember, updateClubMemberRole } from "@/app/(app)/clubs/[slug]/actions";
+import { removeClubMember, submitClubEditRequest, updateClubMemberRole } from "@/app/(app)/clubs/[slug]/actions";
 import { normalizeHttpsUrl, normalizeThemeColor } from "@/lib/sanitize";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -24,12 +24,13 @@ type ClubLandingProps = {
   appForm: any;
   currentApplication: any;
   applications: any[];
-  v4Enabled: boolean;
 };
 
 const CLUB_TABS = [
   { id: "overview", label: "Overview" },
   { id: "members", label: "Members" },
+  { id: "applications", label: "Applications" },
+  { id: "settings", label: "Club Settings" },
 ] as const;
 
 type ClubTab = (typeof CLUB_TABS)[number]["id"];
@@ -49,7 +50,6 @@ export function ClubLandingClient({
   appForm,
   currentApplication,
   applications,
-  v4Enabled,
 }: ClubLandingProps) {
   const [joined, setJoined] = useState(joinedInitially);
   const [memberCount, setMemberCount] = useState(club._count.memberships);
@@ -59,6 +59,7 @@ export function ClubLandingClient({
   const isAdmin = userRole === "ADMIN";
   const canManageMembers = isAdmin || isLeader;
   const safeBannerUrl = normalizeHttpsUrl(club.bannerUrl);
+  const safeLogoUrl = normalizeHttpsUrl(club.logoUrl);
   const safeGradientFrom = normalizeThemeColor(club.gradientFrom) ?? "#1a3a6e";
   const safeGradientTo = normalizeThemeColor(club.gradientTo) ?? "#0c2a52";
 
@@ -78,11 +79,7 @@ export function ClubLandingClient({
 
       toast({
         title: next ? `Joined ${club.name}` : `Left ${club.name}`,
-        description: next
-          ? v4Enabled
-            ? "You joined the club."
-            : "You joined the club. The workspace is coming in v4.0.0."
-          : "You can always rejoin from the directory.",
+        description: next ? "You joined the club." : "You can always rejoin from the directory.",
       });
     });
   };
@@ -114,7 +111,14 @@ export function ClubLandingClient({
 
           <div className="max-w-4xl space-y-5">
             <div className="flex items-center gap-4">
-              <span className="text-[4rem] leading-none drop-shadow-[0_20px_40px_rgba(0,0,0,0.24)]">{club.emoji}</span>
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/14 bg-white/10 text-[4rem] leading-none drop-shadow-[0_20px_40px_rgba(0,0,0,0.24)]">
+                {safeLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={safeLogoUrl} alt={`${club.name} logo`} className="h-full w-full object-cover" />
+                ) : (
+                  <span>{club.emoji}</span>
+                )}
+              </div>
               <div>
                 <h1 className="text-balance text-[clamp(2.6rem,7vw,5.5rem)] font-semibold tracking-[-0.06em] text-white" style={{ fontFamily: "Inter, var(--font-body)" }}>
                   {club.name}
@@ -168,13 +172,13 @@ export function ClubLandingClient({
             </motion.button>
 
             <Link
-              href={`/clubs/${club.id}/workspace`}
+              href={`/clubs/${club.slug}/workspace`}
               className={cn(
                 "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200",
                 "bg-neutral-950/80 text-white hover:bg-neutral-950"
               )}
             >
-              {v4Enabled ? "Open Workspace" : "Coming Soon"}
+              Open Workspace
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -182,7 +186,10 @@ export function ClubLandingClient({
       </motion.div>
 
       <div className="flex gap-px border-b border-border">
-        {CLUB_TABS.map((tab) => (
+        {CLUB_TABS.filter((tab) => {
+          if (tab.id === "settings") return isLeader || isAdmin;
+          return true;
+        }).map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -229,21 +236,19 @@ export function ClubLandingClient({
               <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Primary action</p>
               <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-foreground">Open the club workspace</p>
               <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                {v4Enabled
-                  ? "Your club workspace is live with stream, assignments, tasks, resources, members, and customization."
-                  : "The full club workspace is currently locked while we finish the v4.0.0 release."}
+                Your club workspace is live with stream, assignments, tasks, resources, members, and customization.
               </p>
               <Link
-                href={`/clubs/${club.id}/workspace`}
+                href={`/clubs/${club.slug}/workspace`}
                 className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-neutral-800"
               >
-                {v4Enabled ? "Open Workspace" : "Coming Soon in v4.0.0"}
+                Open Workspace
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
           </motion.section>
         </div>
-      ) : (
+      ) : activeTab === "members" ? (
         <MembersManagementTab
           clubId={club.id}
           slug={club.slug}
@@ -253,17 +258,19 @@ export function ClubLandingClient({
           joined={joined}
           currentRole={membership?.role ?? null}
         />
+      ) : activeTab === "applications" ? (
+        <ClubApplicationsPanel
+          club={club}
+          isLeader={isLeader}
+          currentApplication={currentApplication}
+          appForm={appForm}
+          applications={applications}
+        />
+      ) : (
+        <ClubSettingsTab club={club} canRequestEdits={isLeader || isAdmin} />
       )}
 
-      <ClubApplicationsPanel
-        club={club}
-        isLeader={isLeader}
-        currentApplication={currentApplication}
-        appForm={appForm}
-        applications={applications}
-        v4Enabled={v4Enabled}
-      />
-
+      {activeTab === "overview" ? (
       <div className="grid gap-6 lg:grid-cols-2">
         <motion.section variants={fadeUp} className="surface-panel rounded-[1.75rem] p-6">
           <div className="flex items-center justify-between">
@@ -333,6 +340,7 @@ export function ClubLandingClient({
           </div>
         </motion.section>
       </div>
+      ) : null}
     </motion.div>
   );
 }
@@ -477,6 +485,141 @@ function MembersManagementTab({
           <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
+    </motion.section>
+  );
+}
+
+function ClubSettingsTab({
+  club,
+  canRequestEdits,
+}: {
+  club: any;
+  canRequestEdits: boolean;
+}) {
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState({
+    name: club.name ?? "",
+    slug: club.slug ?? "",
+    tagline: club.tagline ?? "",
+    description: club.description ?? "",
+    meetingDay: club.meetingDay ?? "",
+    meetingTime: club.meetingTime ?? "",
+    meetingRoom: club.meetingRoom ?? "",
+    logoUrl: club.logoUrl ?? "",
+    bannerUrl: club.bannerUrl ?? "",
+    gradientFrom: club.gradientFrom ?? "#1a3a6e",
+    gradientTo: club.gradientTo ?? "#0c2a52",
+  });
+
+  if (!canRequestEdits) {
+    return (
+      <motion.section variants={fadeUp} className="surface-panel rounded-[1.75rem] p-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Club Settings</p>
+        <h2 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.04em] text-foreground" style={{ fontFamily: "Inter, var(--font-body)" }}>
+          Leader access required
+        </h2>
+        <p className="mt-3 max-w-2xl text-[14px] leading-7 text-muted-foreground">
+          Club leaders can submit edit requests here for descriptions, visuals, and URL changes. Admin approves or denies those requests before anything goes live.
+        </p>
+      </motion.section>
+    );
+  }
+
+  return (
+    <motion.section variants={fadeUp} className="surface-panel rounded-[1.75rem] p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Club Settings</p>
+          <h2 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.04em] text-foreground" style={{ fontFamily: "Inter, var(--font-body)" }}>
+            Request club edits
+          </h2>
+          <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-muted-foreground">
+            Leaders can request updates to club copy, visuals, logo, banner, and URL. Admin reviews the request before it goes live.
+          </p>
+        </div>
+        <div className="rounded-[1.2rem] border border-border/80 bg-background/80 px-4 py-3 text-[12px] text-muted-foreground">
+          {club.pendingEditStatus === "PENDING" ? "Pending admin review" : "No pending edit request"}
+        </div>
+      </div>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          startTransition(async () => {
+            const result = await submitClubEditRequest(club.id, form);
+            if (result?.error) {
+              toast({ title: "Error", description: result.error, variant: "destructive" });
+              return;
+            }
+            toast({ title: "Edit request submitted", description: "Admin can now approve or deny these club changes." });
+          });
+        }}
+        className="mt-6 grid gap-4 lg:grid-cols-2"
+      >
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Club name</span>
+          <input value={form.name} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Club URL slug</span>
+          <input value={form.slug} onChange={(e) => setForm((current) => ({ ...current, slug: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Logo URL</span>
+          <input value={form.logoUrl} onChange={(e) => setForm((current) => ({ ...current, logoUrl: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Banner URL</span>
+          <input value={form.bannerUrl} onChange={(e) => setForm((current) => ({ ...current, bannerUrl: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground lg:col-span-2">
+          <span>Tagline</span>
+          <input value={form.tagline} onChange={(e) => setForm((current) => ({ ...current, tagline: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground lg:col-span-2">
+          <span>Description</span>
+          <textarea value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} rows={6} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Meeting day</span>
+          <input value={form.meetingDay} onChange={(e) => setForm((current) => ({ ...current, meetingDay: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Meeting time</span>
+          <input value={form.meetingTime} onChange={(e) => setForm((current) => ({ ...current, meetingTime: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <label className="space-y-2 text-sm font-medium text-foreground">
+          <span>Meeting room</span>
+          <input value={form.meetingRoom} onChange={(e) => setForm((current) => ({ ...current, meetingRoom: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium text-foreground">
+            <span>Primary color</span>
+            <input value={form.gradientFrom} onChange={(e) => setForm((current) => ({ ...current, gradientFrom: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+          </label>
+          <label className="space-y-2 text-sm font-medium text-foreground">
+            <span>Secondary color</span>
+            <input value={form.gradientTo} onChange={(e) => setForm((current) => ({ ...current, gradientTo: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[14px] outline-none" />
+          </label>
+        </div>
+
+        {club.pendingEditRequest ? (
+          <div className="rounded-[1.25rem] border border-border/80 bg-background/70 px-4 py-3 text-[13px] leading-6 text-muted-foreground lg:col-span-2">
+            A request is already waiting on admin review. Submitting again will replace the previous pending request with the latest version.
+          </div>
+        ) : null}
+
+        <div className="lg:col-span-2">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="inline-flex items-center justify-center rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-neutral-800 disabled:opacity-60"
+          >
+            Submit edit request
+          </button>
+        </div>
+      </form>
     </motion.section>
   );
 }

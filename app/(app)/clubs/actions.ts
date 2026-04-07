@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { canAccessAdmin } from "@/lib/roles";
-import { normalizeMultilineText, normalizeSingleLineText, normalizeThemeColor } from "@/lib/sanitize";
+import { normalizeHttpsUrl, normalizeMultilineText, normalizeSingleLineText, normalizeSlug, normalizeThemeColor } from "@/lib/sanitize";
 
 export async function joinClub(clubId: string) {
   const session = await auth();
@@ -60,7 +60,7 @@ export async function leaveClub(clubId: string) {
 }
 
 export async function createClub(data: {
-  name: string; emoji: string; tagline: string; description: string;
+  name: string; slug?: string; logoUrl?: string; emoji: string; tagline: string; description: string;
   category: string; commitment: string; meetingDay: string; meetingTime: string;
   meetingRoom: string; requiresApp: boolean; tags: string[]; gradientFrom?: string; gradientTo?: string;
 }) {
@@ -71,12 +71,16 @@ export async function createClub(data: {
   const gradientTo = normalizeThemeColor(data.gradientTo ?? "#0c2a52");
   if (!gradientFrom || !gradientTo) return { error: "Use valid hex colors for the club theme." };
 
-  const slug = data.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+  const slug = normalizeSlug(data.slug?.trim() || data.name);
+  if (!slug) return { error: "Add a valid URL slug for the club." };
+  const logoUrl = data.logoUrl ? normalizeHttpsUrl(data.logoUrl) : null;
+  if (data.logoUrl && !logoUrl) return { error: "Use a valid https:// URL for the club logo." };
 
   try {
     const club = await prisma.club.create({
       data: {
         slug,
+        logoUrl,
         name: normalizeSingleLineText(data.name, { maxLength: 80 }),
         emoji: data.emoji,
         tagline: normalizeSingleLineText(data.tagline, { maxLength: 140 }),
@@ -104,7 +108,7 @@ export async function createClub(data: {
 }
 
 export async function updateClub(clubId: string, data: Partial<{
-  name: string; emoji: string; tagline: string; description: string;
+  name: string; slug: string; logoUrl: string | null; emoji: string; tagline: string; description: string;
   category: string; commitment: string; meetingDay: string; meetingTime: string;
   meetingRoom: string; requiresApp: boolean; tags: string[]; isActive: boolean; gradientFrom: string; gradientTo: string;
 }>) {
@@ -117,13 +121,25 @@ export async function updateClub(clubId: string, data: Partial<{
     if (data.gradientFrom && !gradientFrom) return { error: "Use a valid hex color for the club theme." };
     if (data.gradientTo && !gradientTo) return { error: "Use a valid hex color for the club theme." };
 
-    const slug = data.name
-      ? data.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim()
+    const slug = data.slug !== undefined
+      ? normalizeSlug(data.slug)
+      : data.name
+        ? normalizeSlug(data.name)
+        : undefined;
+    if (data.slug !== undefined && !slug) return { error: "Add a valid URL slug for the club." };
+    const logoUrl = data.logoUrl !== undefined
+      ? data.logoUrl
+        ? normalizeHttpsUrl(data.logoUrl)
+        : null
       : undefined;
+    if (data.logoUrl !== undefined && data.logoUrl && !logoUrl) {
+      return { error: "Use a valid https:// URL for the club logo." };
+    }
 
     const club = await prisma.club.update({
       where: { id: clubId },
       data: {
+        ...(logoUrl !== undefined ? { logoUrl } : {}),
         ...(data.name ? { name: normalizeSingleLineText(data.name, { maxLength: 80 }) } : {}),
         ...(data.tagline !== undefined ? { tagline: normalizeSingleLineText(data.tagline, { maxLength: 140 }) } : {}),
         ...(data.description !== undefined ? { description: normalizeMultilineText(data.description, { maxLength: 4000 }) } : {}),

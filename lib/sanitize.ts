@@ -45,3 +45,13 @@ export function normalizeHttpsUrl(value: string | null | undefined) {
     return null;
   }
 }
+
+export function normalizeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}

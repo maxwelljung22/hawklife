@@ -6,7 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { canAccessAdmin, canManageClubMembershipRole, canTransitionClubMemberRole } from "@/lib/roles";
 import type { ApplicationStatus, MembershipRole, ResourceCategory, ResourceType } from "@prisma/client";
-import { normalizeHttpsUrl, normalizeMultilineText, normalizeSingleLineText } from "@/lib/sanitize";
+import {
+  normalizeHttpsUrl,
+  normalizeMultilineText,
+  normalizeSingleLineText,
+  normalizeSlug,
+  normalizeThemeColor,
+} from "@/lib/sanitize";
 
 async function canManageClub(clubId: string, userId: string, role: string) {
   if (canAccessAdmin(role as any)) return true;
@@ -71,6 +77,48 @@ function normalizeApplicationFields(fields: any[]) {
   }
 
   return normalized;
+}
+
+function normalizeClubEditRequest(input: {
+  name?: string;
+  slug?: string;
+  tagline?: string;
+  description?: string;
+  meetingDay?: string;
+  meetingTime?: string;
+  meetingRoom?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+}) {
+  const slug = normalizeSlug(input.slug ?? "");
+  const logoUrl = input.logoUrl ? normalizeHttpsUrl(input.logoUrl) : null;
+  const bannerUrl = input.bannerUrl ? normalizeHttpsUrl(input.bannerUrl) : null;
+  const gradientFrom = input.gradientFrom ? normalizeThemeColor(input.gradientFrom) : null;
+  const gradientTo = input.gradientTo ? normalizeThemeColor(input.gradientTo) : null;
+
+  if (input.slug && !slug) return { error: "Use a valid URL slug." as const };
+  if (input.logoUrl && !logoUrl) return { error: "Use a valid https:// URL for the club logo." as const };
+  if (input.bannerUrl && !bannerUrl) return { error: "Use a valid https:// URL for the banner image." as const };
+  if (input.gradientFrom && !gradientFrom) return { error: "Use a valid hex color for the first club color." as const };
+  if (input.gradientTo && !gradientTo) return { error: "Use a valid hex color for the second club color." as const };
+
+  return {
+    data: {
+      name: normalizeSingleLineText(input.name ?? "", { maxLength: 80 }),
+      slug,
+      tagline: normalizeSingleLineText(input.tagline ?? "", { maxLength: 140 }),
+      description: normalizeMultilineText(input.description ?? "", { maxLength: 4000 }),
+      meetingDay: normalizeSingleLineText(input.meetingDay ?? "", { maxLength: 40 }),
+      meetingTime: normalizeSingleLineText(input.meetingTime ?? "", { maxLength: 40 }),
+      meetingRoom: normalizeSingleLineText(input.meetingRoom ?? "", { maxLength: 80 }),
+      logoUrl,
+      bannerUrl,
+      gradientFrom,
+      gradientTo,
+    },
+  };
 }
 
 export async function createPost(clubId: string, title: string, content: string) {
@@ -744,5 +792,64 @@ export async function castVote(pollId: string, optionId: string) {
     return { success: true };
   } catch (err) {
     return { error: "Failed to cast vote" };
+  }
+}
+
+export async function submitClubEditRequest(
+  clubId: string,
+  input: {
+    name?: string;
+    slug?: string;
+    tagline?: string;
+    description?: string;
+    meetingDay?: string;
+    meetingTime?: string;
+    meetingRoom?: string;
+    logoUrl?: string;
+    bannerUrl?: string;
+    gradientFrom?: string;
+    gradientTo?: string;
+  }
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Not authenticated" };
+
+  if (!(await canManageClub(clubId, session.user.id, session.user.role))) {
+    return { error: "Only club leaders can request club edits." };
+  }
+
+  const normalized = normalizeClubEditRequest(input);
+  if ("error" in normalized) return normalized;
+
+  if (!normalized.data.name || !normalized.data.slug || !normalized.data.description) {
+    return { error: "Name, URL slug, and description are required." };
+  }
+
+  const existingSlugOwner = await prisma.club.findFirst({
+    where: {
+      slug: normalized.data.slug,
+      NOT: { id: clubId },
+    },
+    select: { id: true },
+  });
+  if (existingSlugOwner) return { error: "That club URL is already in use." };
+
+  try {
+    await prisma.club.update({
+      where: { id: clubId },
+      data: {
+        pendingEditRequest: normalized.data as any,
+        pendingEditSubmittedAt: new Date(),
+        pendingEditSubmittedById: session.user.id,
+        pendingEditStatus: "PENDING",
+      },
+    });
+
+    revalidatePath("/clubs");
+    revalidatePath(`/clubs/${clubId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[submitClubEditRequest]", err);
+    return { error: "Failed to submit club edit request." };
   }
 }

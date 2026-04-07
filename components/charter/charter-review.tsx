@@ -22,9 +22,9 @@ function SummarySection({
   return (
     <section className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-[0_16px_48px_rgba(15,23,42,0.05)] dark:border-neutral-800 dark:bg-neutral-950">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-lg font-semibold tracking-[-0.03em] text-neutral-950 dark:text-white">{title}</h3>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{description}</p>
+          <p className="mt-1 break-words text-sm text-neutral-500 dark:text-neutral-400">{description}</p>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
           Edit
@@ -37,9 +37,9 @@ function SummarySection({
 
 function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid gap-1 md:grid-cols-[180px_1fr] md:gap-4">
-      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500">{label}</span>
-      <div>{value}</div>
+    <div className="grid gap-1 md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
+      <span className="break-words text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500">{label}</span>
+      <div className="min-w-0 break-words">{value}</div>
     </div>
   );
 }
@@ -77,9 +77,9 @@ export function CharterReview({ values, onEditStep }: CharterReviewProps) {
               {values.leadershipRoles
                 .filter((entry) => entry.title.trim() && entry.person.trim())
                 .map((entry) => (
-                  <div key={`${entry.title}-${entry.person}`} className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900">
-                    <span className="font-medium">{entry.title}</span>
-                    <span className="text-neutral-500 dark:text-neutral-400">{entry.person}</span>
+                  <div key={`${entry.title}-${entry.person}`} className="flex flex-col gap-1 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900">
+                    <span className="break-words font-medium">{entry.title}</span>
+                    <span className="break-words text-neutral-500 dark:text-neutral-400">{entry.person}</span>
                   </div>
                 ))}
             </div>

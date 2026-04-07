@@ -20,6 +20,9 @@ type CreateSessionInput = {
   capacity: number;
 };
 
+const FACULTY_ALLOWED_MANUAL_STATUSES: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT"];
+const ADMIN_ONLY_MANUAL_STATUSES: AttendanceStatus[] = ["ABSENT_EXCUSED", "LATE_EXCUSED"];
+
 async function requireUser() {
   const session = await auth();
   return session?.user ?? null;
@@ -35,7 +38,7 @@ export async function joinFlexSession(sessionId: string) {
   const { dayStart, dayEnd } = getFlexBlockWindow();
 
   let result:
-    | { success: true; sessionId: string; status: "JOINED" | "PRESENT" | "LATE" }
+    | { success: true; sessionId: string; status: AttendanceStatus }
     | { error: string };
 
   try {
@@ -77,7 +80,7 @@ export async function joinFlexSession(sessionId: string) {
         return { success: true, sessionId, status: existingRecord.status } as const;
       }
 
-      if (existingRecord && existingRecord.status !== "JOINED") {
+      if (existingRecord && existingRecord.status !== "JOINED" && existingRecord.status !== "ABSENT" && existingRecord.status !== "ABSENT_EXCUSED") {
         return {
           error: `You already checked into ${existingRecord.session.title}. You can't switch after scanning.`,
         } as const;
@@ -379,12 +382,12 @@ export async function scanIntoFlexSession(qrValue: string) {
     return { error: "Join this session before scanning in." };
   }
 
-  if (record.status === "PRESENT" || record.status === "LATE") {
+  if (["PRESENT", "LATE", "LATE_EXCUSED"].includes(record.status)) {
     return { success: true, status: record.status, title: session.title };
   }
 
   const { lateThreshold } = getFlexBlockWindow(session.startTime);
-  const nextStatus = new Date() > lateThreshold ? "LATE" : "PRESENT";
+  const nextStatus: AttendanceStatus = new Date() > lateThreshold ? "LATE" : "PRESENT";
 
   await prisma.attendanceRecord.update({
     where: { id: record.id },
@@ -403,17 +406,18 @@ export async function scanIntoFlexSession(qrValue: string) {
 
 export async function markFlexAttendanceManually(
   sessionId: string,
-  userId: string,
+  userIds: string | string[],
   status: AttendanceStatus
 ) {
   const user = await requireUser();
   if (!user) return { error: "You need to sign in first." };
+  const isAdmin = user.role === "ADMIN";
   if (!canAccessFacultyTools(user.role)) {
-    return { error: "Only faculty or admins can manually mark attendance." };
+    return { error: "Only faculty controls can manually mark attendance." };
   }
 
-  if (status !== "PRESENT" && status !== "LATE") {
-    return { error: "Choose either present or late." };
+  if (!FACULTY_ALLOWED_MANUAL_STATUSES.includes(status) && !(isAdmin && ADMIN_ONLY_MANUAL_STATUSES.includes(status))) {
+    return { error: "You don't have permission to use that attendance status." };
   }
 
   const session = await prisma.attendanceSession.findUnique({
@@ -427,45 +431,53 @@ export async function markFlexAttendanceManually(
 
   if (!session) return { error: "Session not found." };
 
-  const targetUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, name: true, email: true, role: true },
+  const targetUserIds = Array.isArray(userIds) ? Array.from(new Set(userIds)) : [userIds];
+  if (targetUserIds.length === 0) return { error: "Select at least one student first." };
+
+  const targetUsers = await prisma.user.findMany({
+    where: { id: { in: targetUserIds } },
+    select: { id: true, name: true, email: true, role: true, grade: true },
   });
 
-  if (!targetUser) return { error: "Student not found." };
+  if (targetUsers.length === 0) return { error: "Student not found." };
 
   const now = new Date();
-
-  const record = await prisma.attendanceRecord.upsert({
-    where: {
-      sessionId_userId: {
-        sessionId,
-        userId,
-      },
-    },
-    update: {
-      status,
-      present: true,
-      checkIn: now,
-    },
-    create: {
-      sessionId,
-      userId,
-      status,
-      present: true,
-      joinedAt: now,
-      checkIn: now,
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  const present = status === "PRESENT" || status === "LATE" || status === "LATE_EXCUSED";
+  const records = [];
+  for (const targetUser of targetUsers) {
+    const record = await prisma.attendanceRecord.upsert({
+      where: {
+        sessionId_userId: {
+          sessionId,
+          userId: targetUser.id,
         },
       },
-    },
-  });
+      update: {
+        status,
+        present,
+        checkIn: present ? now : null,
+      },
+      create: {
+        sessionId,
+        userId: targetUser.id,
+        status,
+        present,
+        joinedAt: now,
+        checkIn: present ? now : null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            grade: true,
+          },
+        },
+      },
+    });
+    records.push(record);
+  }
 
   revalidatePath("/flex");
   revalidatePath("/dashboard");
@@ -473,9 +485,11 @@ export async function markFlexAttendanceManually(
 
   return {
     success: true,
-    record,
+    record: records[0],
+    records,
     title: session.title,
     status,
-    studentName: targetUser.name || targetUser.email || "Student",
+    studentName: targetUsers[0]?.name || targetUsers[0]?.email || "Student",
+    updatedCount: records.length,
   };
 }

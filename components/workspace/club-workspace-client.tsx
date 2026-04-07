@@ -242,7 +242,7 @@ export function ClubWorkspaceClient({
       <div className="sticky top-[88px] z-20 rounded-[1.8rem] border border-border/80 bg-card/85 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <Link href={`/clubs/${club.id}`} className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground">
+            <Link href={`/clubs/${club.slug}`} className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground">
               {club.name}
             </Link>
             <div className="mt-2 flex items-center gap-3">
@@ -261,7 +261,7 @@ export function ClubWorkspaceClient({
             <div className="rounded-2xl border border-border bg-background/80 px-4 py-3 text-sm text-muted-foreground">
               {members.length} active members
             </div>
-            <Link href={`/clubs/${club.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background/80 px-4 py-3 text-sm font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+            <Link href={`/clubs/${club.slug}`} className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background/80 px-4 py-3 text-sm font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
               Back to club
               <ChevronRight className="h-4 w-4" />
             </Link>

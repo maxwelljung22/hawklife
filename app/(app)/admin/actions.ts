@@ -4,9 +4,9 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import type { MembershipRole, UserRole } from "@prisma/client";
+import { Prisma, type MembershipRole, type UserRole } from "@prisma/client";
 import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
-import { normalizePlainText } from "@/lib/sanitize";
+import { normalizePlainText, normalizeSlug } from "@/lib/sanitize";
 
 async function checkAdmin() {
   const session = await auth();
@@ -179,6 +179,90 @@ export async function removeClubLeadership(userId: string, clubId: string) {
     });
     revalidatePath("/admin");
     revalidatePath("/clubs");
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function approveClubEditRequest(clubId: string) {
+  try {
+    await checkAdmin();
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: {
+        id: true,
+        slug: true,
+        pendingEditRequest: true,
+      },
+    });
+    if (!club?.pendingEditRequest || typeof club.pendingEditRequest !== "object") {
+      return { error: "No pending club edit request was found." };
+    }
+
+    const request = club.pendingEditRequest as Record<string, unknown>;
+    const nextSlug = normalizeSlug(String(request.slug ?? ""));
+    if (!nextSlug) return { error: "The pending request is missing a valid slug." };
+
+    const conflict = await prisma.club.findFirst({
+      where: {
+        slug: nextSlug,
+        NOT: { id: clubId },
+      },
+      select: { id: true },
+    });
+    if (conflict) return { error: "That requested club URL is already in use." };
+
+    await prisma.club.update({
+      where: { id: clubId },
+      data: {
+        name: String(request.name ?? ""),
+        slug: nextSlug,
+        tagline: String(request.tagline ?? "") || null,
+        description: String(request.description ?? ""),
+        meetingDay: String(request.meetingDay ?? "") || null,
+        meetingTime: String(request.meetingTime ?? "") || null,
+        meetingRoom: String(request.meetingRoom ?? "") || null,
+        logoUrl: String(request.logoUrl ?? "") || null,
+        bannerUrl: String(request.bannerUrl ?? "") || null,
+        gradientFrom: String(request.gradientFrom ?? "") || undefined,
+        gradientTo: String(request.gradientTo ?? "") || undefined,
+        pendingEditRequest: Prisma.JsonNull,
+        pendingEditSubmittedAt: null,
+        pendingEditSubmittedById: null,
+        pendingEditStatus: "APPROVED",
+      },
+    });
+
+    revalidatePath("/clubs");
+    revalidatePath(`/clubs/${club.slug}`);
+    revalidatePath(`/clubs/${nextSlug}`);
+    revalidatePath("/admin");
+    return { success: true, slug: nextSlug };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function denyClubEditRequest(clubId: string) {
+  try {
+    await checkAdmin();
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { slug: true },
+    });
+    await prisma.club.update({
+      where: { id: clubId },
+      data: {
+        pendingEditRequest: Prisma.JsonNull,
+        pendingEditSubmittedAt: null,
+        pendingEditSubmittedById: null,
+        pendingEditStatus: "DENIED",
+      },
+    });
+    revalidatePath("/clubs");
+    if (club?.slug) revalidatePath(`/clubs/${club.slug}`);
+    revalidatePath("/admin");
     return { success: true };
   } catch (err: any) {
     return { error: err.message };

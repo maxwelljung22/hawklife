@@ -17,6 +17,7 @@ interface Club {
   id: string;
   slug: string;
   name: string;
+  logoUrl?: string | null;
   emoji: string;
   tagline: string | null;
   description: string;
@@ -93,7 +94,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
 
         toast({
           title: next ? `Joined ${club.name}` : `Left ${club.name}`,
-          description: next ? "You can view the club page now. Workspace returns in v4.0.0." : "You can always rejoin later.",
+          description: next ? "You can open the club workspace right away now." : "You can always rejoin later.",
         });
       });
     },
@@ -127,9 +128,9 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
         </div>
       </motion.section>
 
-      <motion.section variants={fadeUp} className="rounded-[1.8rem] border border-border/80 bg-card/90 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur-sm">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div>
+      <motion.section variants={fadeUp} className="rounded-[1.8rem] border border-border/80 bg-card/90 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:p-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,auto)] xl:items-end">
+          <div className="min-w-0">
             <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Search</label>
             <div className="relative mt-2">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -142,7 +143,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-end">
             <ChipGroup label="Category" items={CATEGORIES} value={category} onChange={setCategory} />
             <ChipGroup label="Commitment" items={COMMITMENTS} value={commitment} onChange={setCommitment} />
           </div>
@@ -172,7 +173,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                   transition={{ duration: 0.18 }}
                   className="group overflow-hidden rounded-[1.5rem] border border-border/80 bg-card shadow-[0_12px_28px_rgba(15,23,42,0.05)]"
                 >
-                  <Link href={`/clubs/${club.id}`} className="block">
+                  <Link href={`/clubs/${club.slug}`} className="block">
                     <div
                       className="relative h-32 overflow-hidden"
                       style={{ background: `linear-gradient(135deg, ${club.gradientFrom}, ${club.gradientTo})` }}
@@ -180,7 +181,14 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_30%),linear-gradient(180deg,transparent,rgba(0,0,0,0.2))]" />
                       <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-4 pb-4">
                         <div>
-                          <div className="text-[2.4rem] leading-none drop-shadow-[0_18px_40px_rgba(0,0,0,0.18)]">{club.emoji}</div>
+                          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[1rem] border border-white/15 bg-white/10 text-[2.1rem] leading-none drop-shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                            {club.logoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={club.logoUrl} alt={`${club.name} logo`} className="h-full w-full object-cover" />
+                            ) : (
+                              club.emoji
+                            )}
+                          </div>
                           <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/78">{club.category}</p>
                         </div>
                         {club.requiresApp ? (
@@ -194,7 +202,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
 
                   <div className="space-y-4 p-4">
                     <div>
-                      <Link href={`/clubs/${club.id}`} className="block">
+                      <Link href={`/clubs/${club.slug}`} className="block">
                         <h2 className="text-[1.05rem] font-semibold tracking-[-0.04em] text-foreground transition-colors duration-200 group-hover:text-[hsl(var(--primary))]" style={{ fontFamily: "Inter, var(--font-body)" }}>
                           {club.name}
                         </h2>
@@ -227,7 +235,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                         {club.joined ? "Joined" : "Join Club"}
                       </button>
                       <Link
-                        href={club.joined ? `/clubs/${club.id}/workspace` : `/clubs/${club.id}`}
+                        href={club.joined ? `/clubs/${club.slug}/workspace` : `/clubs/${club.slug}`}
                         className={cn(
                           "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200",
                           club.joined
@@ -235,7 +243,7 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                             : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        Coming Soon
+                        {club.joined ? "Open Workspace" : "View Club"}
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </div>
@@ -262,7 +270,7 @@ function ChipGroup({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
@@ -270,7 +278,7 @@ function ChipGroup({
             key={item}
             onClick={() => onChange(item)}
             className={cn(
-              "rounded-full border px-3.5 py-2 text-[12px] font-medium transition-all duration-200",
+              "whitespace-nowrap rounded-full border px-3.5 py-2 text-[12px] font-medium transition-all duration-200",
               value === item
                 ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
                 : "border-border bg-background text-muted-foreground hover:-translate-y-0.5 hover:text-foreground"

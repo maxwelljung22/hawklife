@@ -21,6 +21,8 @@ import {
   updateUserRole,
   assignClubLeadership,
   removeClubLeadership,
+  approveClubEditRequest,
+  denyClubEditRequest,
 } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -65,8 +67,8 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords,
           <ShieldCheck className="h-4 w-4 text-crimson" />
         </div>
         <div>
-          <p className="text-[10.5px] font-bold uppercase tracking-[.09em] text-crimson">{isAdmin ? "Administration" : "Faculty Oversight"}</p>
-          <h1 className="font-display text-[28px] font-semibold text-foreground tracking-tight leading-none">{isAdmin ? "Admin Panel" : "Oversight Dashboard"}</h1>
+          <p className="text-[10.5px] font-bold uppercase tracking-[.09em] text-crimson">{isAdmin ? "Administration" : "Faculty Controls"}</p>
+          <h1 className="font-display text-[28px] font-semibold text-foreground tracking-tight leading-none">{isAdmin ? "Admin Panel" : "Faculty Controls"}</h1>
         </div>
       </div>
 
@@ -154,7 +156,7 @@ function OverviewTab({ clubs, users, applications, nhsRecords, analytics }: any)
           </div>
         </div>
 
-        {/* Oversight stats */}
+        {/* Faculty controls stats */}
         <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
           <p className="text-[13px] font-bold text-foreground mb-4">Moderation & analytics</p>
           <div className="grid grid-cols-2 gap-3">
@@ -185,6 +187,7 @@ function OverviewTab({ clubs, users, applications, nhsRecords, analytics }: any)
 function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: boolean; canFlag: boolean }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
+  const pendingRequests = clubs.filter((club) => club.pendingEditStatus === "PENDING" && club.pendingEditRequest);
 
   const handleDelete = (clubId: string, clubName: string) => {
     if (!confirm(`Archive "${clubName}"? This will hide it from students.`)) return;
@@ -197,7 +200,7 @@ function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: bo
 
   const handleFlag = (clubId: string, clubName: string, flagged: boolean) => {
     startTransition(async () => {
-      const result = await setClubFlag(clubId, flagged, flagged ? `Flagged by faculty oversight for ${clubName}.` : "");
+      const result = await setClubFlag(clubId, flagged, flagged ? `Flagged by faculty controls for ${clubName}.` : "");
       if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
       else toast({ title: flagged ? "Club flagged" : "Club unflagged" });
     });
@@ -205,6 +208,56 @@ function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: bo
 
   return (
     <div className="space-y-4">
+      {pendingRequests.length > 0 ? (
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+          <p className="text-[12px] font-bold uppercase tracking-[.08em] text-muted-foreground">Pending Club Edit Requests</p>
+          <div className="mt-4 space-y-3">
+            {pendingRequests.map((club) => (
+              <div key={club.id} className="rounded-xl border border-border/80 bg-background/70 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-foreground">{club.name}</p>
+                    <p className="mt-1 text-[12.5px] text-muted-foreground">
+                      Requested URL: {(club.pendingEditRequest as any)?.slug || club.slug}
+                    </p>
+                    <p className="mt-2 text-[12.5px] leading-6 text-muted-foreground">
+                      {(club.pendingEditRequest as any)?.tagline || "No new tagline provided."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() =>
+                        startTransition(async () => {
+                          const result = await approveClubEditRequest(club.id);
+                          if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
+                          else toast({ title: "Club edit request approved" });
+                        })
+                      }
+                      disabled={pending}
+                      className="rounded-xl bg-neutral-950 px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-neutral-800"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() =>
+                        startTransition(async () => {
+                          const result = await denyClubEditRequest(club.id);
+                          if (result?.error) toast({ title: "Error", description: result.error, variant: "destructive" });
+                          else toast({ title: "Club edit request denied" });
+                        })
+                      }
+                      disabled={pending}
+                      className="rounded-xl border border-border bg-card px-3.5 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="flex justify-end">
         <Link
           href="/admin/clubs/new"
