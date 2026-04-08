@@ -9,8 +9,7 @@ import { canParticipateInFlex } from "@/lib/flex-attendance";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session?.user) redirect("/auth/signin");
-  let introState: { hasSeenIntro: boolean } | null = null;
-  let accountSetupState: { graduationYear: number | null } | null = null;
+  let userState: { hasSeenIntro: boolean; graduationYear: number | null } | null = null;
   let notifications: Array<{
     id: string;
     title: string;
@@ -24,14 +23,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let unreadNotifications = 0;
 
   try {
-    [introState, accountSetupState, notifications, unreadNotifications] = await Promise.all([
+    [userState, notifications, unreadNotifications] = await Promise.all([
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { hasSeenIntro: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { graduationYear: true },
+        select: { hasSeenIntro: true, graduationYear: true },
       }),
       prisma.notification.findMany({
         where: { userId: session.user.id },
@@ -75,15 +70,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     unreadNotifications = await prisma.notification.count({
       where: { userId: session.user.id, isRead: false },
     });
-    introState = { hasSeenIntro: true };
-    accountSetupState = { graduationYear: 2027 };
+    userState = { hasSeenIntro: true, graduationYear: 2027 };
   }
 
   return (
     <FirstRunIntroGate
       userId={session.user.id}
-      shouldShowInitially={!introState?.hasSeenIntro}
-      shouldRequireAccountSetup={canParticipateInFlex({ role: session.user.role, graduationYear: accountSetupState?.graduationYear ?? null }) && !accountSetupState?.graduationYear}
+      shouldShowInitially={!userState?.hasSeenIntro}
+      shouldRequireAccountSetup={canParticipateInFlex({ role: session.user.role, graduationYear: userState?.graduationYear ?? null }) && !userState?.graduationYear}
     >
       <AppShell user={session.user} notifications={notifications} unreadNotifications={unreadNotifications}>
         {children}

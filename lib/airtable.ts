@@ -71,6 +71,7 @@ async function fetchFromAirtable(): Promise<NhsRecord[]> {
     const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${AIRTABLE_KEY}` },
       next: { revalidate: 0 },
+      signal: AbortSignal.timeout(12_000),
     });
 
     if (!res.ok) {

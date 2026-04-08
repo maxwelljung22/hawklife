@@ -32,7 +32,7 @@ async function fetchQrState(sessionId: string, mode: "rotating" | "static"): Pro
 }
 
 function buildQrImageUrl(qrValue: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=720x720&data=${encodeURIComponent(qrValue)}`;
+  return `/api/flex/qr-image?size=720&value=${encodeURIComponent(qrValue)}`;
 }
 
 export function QrDisplay({
