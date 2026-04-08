@@ -871,6 +871,7 @@ function ApplicationsTab({ applications, canReview }: { applications: any[]; can
     rejected: applications.filter((app) => app.status === "REJECTED").length,
     underReview: applications.filter((app) => app.status === "UNDER_REVIEW").length,
     submitted: applications.filter((app) => app.status === "SUBMITTED").length,
+    waitlisted: applications.filter((app) => app.status === "WAITLISTED").length,
   };
 
   const handle = (id: string, status: string, name: string) => {
@@ -892,16 +893,19 @@ function ApplicationsTab({ applications, canReview }: { applications: any[]; can
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: "Submitted", value: counts.submitted },
           { label: "Under review", value: counts.underReview },
           { label: "Accepted", value: counts.accepted },
           { label: "Rejected", value: counts.rejected },
+          { label: "Waitlisted", value: counts.waitlisted },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
-            <p className="text-[11px] text-muted-foreground">{stat.label}</p>
-            <p className="mt-1 text-[22px] font-semibold text-foreground">{stat.value}</p>
+            <p className="min-h-[2.5rem] text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <p className="mt-2 text-[22px] font-semibold text-foreground">{stat.value}</p>
           </div>
         ))}
       </div>
