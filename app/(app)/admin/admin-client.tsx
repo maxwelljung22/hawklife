@@ -7,7 +7,7 @@ import {
   Users, Building2, FileText, Scroll,
   GraduationCap, Plus, Edit, Trash2,
   CheckCircle, XCircle, Clock, ShieldCheck,
-  BarChart3, TrendingUp, AlertTriangle, Flag,
+  BarChart3, TrendingUp, AlertTriangle, Flag, BellDot, History, ClipboardList, Sparkles,
 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +29,7 @@ import Link from "next/link";
 import type { NhsRecord } from "@/lib/airtable";
 import { canAccessAdmin, getClubLeadershipRoleLabel, getRoleBadgeClass, getRoleLabel } from "@/lib/roles";
 
-type AdminTab = "overview" | "clubs" | "users" | "applications" | "changelog" | "nhs";
+type AdminTab = "overview" | "requests" | "activity" | "clubs" | "users" | "applications" | "changelog" | "nhs";
 
 interface Props {
   clubs: any[];
@@ -48,6 +48,8 @@ interface Props {
 
 const TABS: { id: AdminTab; label: string; icon: any }[] = [
   { id: "overview",      label: "Overview",     icon: BarChart3    },
+  { id: "requests",      label: "Requests",     icon: ClipboardList },
+  { id: "activity",      label: "Activity",     icon: History      },
   { id: "clubs",         label: "Clubs",        icon: Building2    },
   { id: "users",         label: "Users",        icon: Users        },
   { id: "applications",  label: "Applications", icon: FileText     },
@@ -58,6 +60,10 @@ const TABS: { id: AdminTab; label: string; icon: any }[] = [
 export function AdminClient({ clubs, users, applications, changelog, nhsRecords, currentRole, analytics }: Props) {
   const [tab, setTab] = useState<AdminTab>("overview");
   const isAdmin = canAccessAdmin(currentRole);
+  const pendingApplications = applications.filter((application) => ["SUBMITTED", "UNDER_REVIEW"].includes(application.status));
+  const pendingClubRequests = clubs.filter((club) => club.pendingEditStatus === "PENDING" && club.pendingEditRequest);
+  const flaggedClubs = clubs.filter((club) => club.isFlagged);
+  const recentActivity = buildAdminActivity({ clubs, users, applications, changelog });
 
   return (
     <div className="space-y-6">
@@ -88,13 +94,20 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords,
             {t.id === "applications" && applications.length > 0 && (
               <span className="ml-1 px-1.5 py-0.5 bg-crimson text-white rounded-full text-[10px] font-bold">{applications.length}</span>
             )}
+            {t.id === "requests" && pendingApplications.length + pendingClubRequests.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-crimson text-white rounded-full text-[10px] font-bold">
+                {pendingApplications.length + pendingClubRequests.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          {tab === "overview"     && <OverviewTab clubs={clubs} users={users} applications={applications} nhsRecords={nhsRecords} analytics={analytics} />}
+          {tab === "overview"     && <OverviewTab clubs={clubs} users={users} applications={applications} nhsRecords={nhsRecords} analytics={analytics} changelog={changelog} />}
+          {tab === "requests"     && <RequestsTab clubs={clubs} applications={applications} />}
+          {tab === "activity"     && <ActivityTab items={recentActivity} flaggedClubs={flaggedClubs} pendingClubRequests={pendingClubRequests} />}
           {tab === "clubs"        && <ClubsTab clubs={clubs} canArchive={isAdmin} canFlag />}
           {tab === "users"        && <UsersTab users={users} clubs={clubs} canManageUsers={isAdmin} />}
           {tab === "applications" && <ApplicationsTab applications={applications} canReview={isAdmin} />}
@@ -107,21 +120,30 @@ export function AdminClient({ clubs, users, applications, changelog, nhsRecords,
 }
 
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
-function OverviewTab({ clubs, users, applications, nhsRecords, analytics }: any) {
+function OverviewTab({ clubs, users, applications, nhsRecords, analytics, changelog }: any) {
   const activeClubs   = clubs.filter((c: any) => c.isActive).length;
   const totalMembers  = users.length;
   const pendingApps   = applications.filter((application: any) => ["SUBMITTED", "UNDER_REVIEW"].includes(application.status)).length;
   const nhsComplete   = nhsRecords.filter((r: NhsRecord) => r.status === "complete").length;
   const flaggedClubs = clubs.filter((club: any) => club.isFlagged).length;
+  const pendingClubRequests = clubs.filter((club: any) => club.pendingEditStatus === "PENDING" && club.pendingEditRequest).length;
+  const recentUsers = users.slice(0, 5);
+  const recentClubRequests = clubs
+    .filter((club: any) => club.pendingEditStatus === "PENDING" && club.pendingEditSubmittedAt)
+    .sort((a: any, b: any) => +new Date(b.pendingEditSubmittedAt) - +new Date(a.pendingEditSubmittedAt))
+    .slice(0, 4);
+  const recentUpdates = changelog.slice(0, 4);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
           { icon: Building2,   val: activeClubs,  label: "Active Clubs",      color: "text-crimson bg-crimson/8" },
           { icon: Users,       val: analytics.participatingStudents, label: "Student Participation", color: "text-navy bg-navy/8"       },
           { icon: FileText,    val: pendingApps,  label: "Pending Apps",       color: "text-amber-600 bg-amber-50 dark:bg-amber-900/20" },
           { icon: GraduationCap,val: nhsComplete, label: "NHS Complete",       color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" },
+          { icon: ClipboardList,val: pendingClubRequests, label: "Edit Requests", color: "text-violet-600 bg-violet-50 dark:bg-violet-900/20" },
+          { icon: Flag,        val: flaggedClubs, label: "Flagged Clubs",      color: "text-amber-700 bg-amber-50 dark:bg-amber-900/20" },
         ].map(({ icon: Icon, val, label, color }) => (
           <div key={label} className="bg-card border border-border rounded-2xl p-5 shadow-card">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center mb-4", color)}>
@@ -169,14 +191,188 @@ function OverviewTab({ clubs, users, applications, nhsRecords, analytics }: any)
               <p className="mt-1 text-[20px] font-semibold text-foreground">{analytics.attendanceCount}</p>
             </div>
             <div className="rounded-xl bg-muted px-4 py-3">
-              <p className="text-[11px] text-muted-foreground">Flagged clubs</p>
-              <p className="mt-1 text-[20px] font-semibold text-foreground">{flaggedClubs}</p>
+              <p className="text-[11px] text-muted-foreground">Pending edit requests</p>
+              <p className="mt-1 text-[20px] font-semibold text-foreground">{pendingClubRequests}</p>
             </div>
             <div className="rounded-xl bg-muted px-4 py-3">
               <p className="text-[11px] text-muted-foreground">Total users</p>
               <p className="mt-1 text-[20px] font-semibold text-foreground">{totalMembers}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <div className="flex items-center gap-2">
+            <BellDot className="h-4 w-4 text-crimson" />
+            <p className="text-[13px] font-bold text-foreground">Club edit requests</p>
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentClubRequests.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground">No club edit requests are waiting right now.</p>
+            ) : recentClubRequests.map((club: any) => (
+              <div key={club.id} className="rounded-xl bg-muted/50 px-4 py-3">
+                <p className="text-[13px] font-semibold text-foreground">{club.name}</p>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  Submitted {formatRelativeTime(club.pendingEditSubmittedAt)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-crimson" />
+            <p className="text-[13px] font-bold text-foreground">Newest users</p>
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentUsers.map((user: any) => (
+              <div key={user.id} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-foreground">{user.name ?? "Unnamed user"}</p>
+                  <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
+                </div>
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", getRoleBadgeClass(user.role))}>
+                  {getRoleLabel(user.role)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-crimson" />
+            <p className="text-[13px] font-bold text-foreground">Recent updates</p>
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentUpdates.map((entry: any) => (
+              <div key={entry.id} className="rounded-xl bg-muted/50 px-4 py-3">
+                <p className="text-[13px] font-semibold text-foreground">{entry.title}</p>
+                <p className="mt-1 text-[12px] text-muted-foreground">{formatRelativeTime(entry.publishedAt)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequestsTab({ clubs, applications }: { clubs: any[]; applications: any[] }) {
+  const pendingClubRequests = clubs
+    .filter((club) => club.pendingEditStatus === "PENDING" && club.pendingEditRequest)
+    .sort((a, b) => +new Date(b.pendingEditSubmittedAt ?? 0) - +new Date(a.pendingEditSubmittedAt ?? 0));
+  const pendingApplications = applications.filter((application) => ["SUBMITTED", "UNDER_REVIEW"].includes(application.status));
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <p className="text-[13px] font-bold text-foreground">Club Edit Requests</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">Submitted club updates that need review or approval.</p>
+          <div className="mt-4 space-y-3">
+            {pendingClubRequests.length === 0 ? (
+              <div className="rounded-xl bg-muted/40 px-4 py-4 text-[12px] text-muted-foreground">No pending club edit requests.</div>
+            ) : pendingClubRequests.map((club) => (
+              <div key={club.id} className="rounded-xl border border-border bg-muted/30 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-semibold text-foreground">{club.name}</p>
+                    <p className="mt-1 text-[12px] text-muted-foreground">
+                      Requested {formatRelativeTime(club.pendingEditSubmittedAt)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900/20 dark:text-violet-300">
+                    Pending
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-2 text-[12px] text-muted-foreground">
+                  <p>Requested slug: {(club.pendingEditRequest as any)?.slug || club.slug}</p>
+                  <p>Requested title: {(club.pendingEditRequest as any)?.name || club.name}</p>
+                  <p className="line-clamp-2">{(club.pendingEditRequest as any)?.tagline || "No new tagline provided."}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <p className="text-[13px] font-bold text-foreground">Application Review Queue</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">Student applications that are still awaiting an admin decision.</p>
+          <div className="mt-4 space-y-3">
+            {pendingApplications.length === 0 ? (
+              <div className="rounded-xl bg-muted/40 px-4 py-4 text-[12px] text-muted-foreground">No pending applications.</div>
+            ) : pendingApplications.slice(0, 8).map((application) => (
+              <div key={application.id} className="rounded-xl border border-border bg-muted/30 px-4 py-4">
+                <p className="text-[13.5px] font-semibold text-foreground">{application.applicant.name}</p>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  {application.club.emoji} {application.club.name} · {formatRelativeTime(application.createdAt)}
+                </p>
+                <span className="mt-3 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                  {application.status.replace("_", " ")}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityTab({
+  items,
+  flaggedClubs,
+  pendingClubRequests,
+}: {
+  items: Array<{ id: string; title: string; detail: string; time: Date; kind: string }>;
+  flaggedClubs: any[];
+  pendingClubRequests: any[];
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <p className="text-[11px] font-bold uppercase tracking-[.07em] text-muted-foreground">Flag Review</p>
+          <p className="mt-2 text-[28px] font-semibold text-foreground">{flaggedClubs.length}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">clubs currently flagged for admin attention</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <p className="text-[11px] font-bold uppercase tracking-[.07em] text-muted-foreground">Request Queue</p>
+          <p className="mt-2 text-[28px] font-semibold text-foreground">{pendingClubRequests.length}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">club edit requests waiting for review</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <p className="text-[11px] font-bold uppercase tracking-[.07em] text-muted-foreground">Recent Activity</p>
+          <p className="mt-2 text-[28px] font-semibold text-foreground">{items.length}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">latest objects across HawkLife admin workflows</p>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+        <p className="text-[13px] font-bold text-foreground">Activity Feed</p>
+        <p className="mt-1 text-[12px] text-muted-foreground">A lightweight audit-style timeline built from recent user, club, application, and changelog activity.</p>
+        <div className="mt-4 space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 px-4 py-4">
+              <div className="mt-0.5 rounded-full bg-crimson/10 p-2 text-crimson">
+                <History className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[13.5px] font-semibold text-foreground">{item.title}</p>
+                  <span className="text-[11px] text-muted-foreground">{formatRelativeTime(item.time)}</span>
+                </div>
+                <p className="mt-1 text-[12px] text-muted-foreground">{item.detail}</p>
+                <span className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[.06em] text-muted-foreground">
+                  {item.kind}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -941,4 +1137,53 @@ function NhsTab({ records }: { records: NhsRecord[] }) {
       </table>
     </div>
   );
+}
+
+function buildAdminActivity({
+  clubs,
+  users,
+  applications,
+  changelog,
+}: {
+  clubs: any[];
+  users: any[];
+  applications: any[];
+  changelog: any[];
+}) {
+  return [
+    ...clubs.slice(0, 8).map((club) => ({
+      id: `club-${club.id}`,
+      title: `${club.name} updated`,
+      detail: club.pendingEditStatus === "PENDING"
+        ? "A club edit request is waiting for admin review."
+        : club.isFlagged
+          ? club.flagReason || "Club is currently flagged for review."
+          : "Club details or moderation state changed recently.",
+      time: new Date(club.updatedAt),
+      kind: club.pendingEditStatus === "PENDING" ? "club request" : "club",
+    })),
+    ...users.slice(0, 8).map((user) => ({
+      id: `user-${user.id}`,
+      title: `${user.name ?? "Unnamed user"} joined HawkLife`,
+      detail: `${user.email ?? "No email"} · ${getRoleLabel(user.role)}`,
+      time: new Date(user.createdAt),
+      kind: "user",
+    })),
+    ...applications.slice(0, 8).map((application) => ({
+      id: `application-${application.id}`,
+      title: `${application.applicant.name ?? "Student"} applied to ${application.club.name}`,
+      detail: `Application is currently ${application.status.replace("_", " ").toLowerCase()}.`,
+      time: new Date(application.createdAt),
+      kind: "application",
+    })),
+    ...changelog.slice(0, 8).map((entry) => ({
+      id: `changelog-${entry.id}`,
+      title: `Changelog published: ${entry.title}`,
+      detail: `${entry.type.replace("_", " ")} update posted to HawkLife.`,
+      time: new Date(entry.publishedAt ?? entry.createdAt),
+      kind: "changelog",
+    })),
+  ]
+    .sort((a, b) => +b.time - +a.time)
+    .slice(0, 18);
 }
