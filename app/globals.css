@@ -252,6 +252,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -264,6 +265,7 @@
       radial-gradient(circle at 50% 100%, hsl(var(--theme-wash-3) / 0.24), transparent 38%),
       linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
     background-attachment: fixed;
+    overscroll-behavior-y: none;
     transition:
       background-color 220ms ease,
       color 220ms ease,
@@ -447,5 +449,37 @@
 
   .shadow-modal {
     box-shadow: 0 20px 80px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
+  }
+}
+
+@media (max-width: 1023px), (pointer: coarse) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .topbar-glass {
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  }
+
+  .surface-card {
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .surface-panel {
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .card-lift:hover,
+  .interactive-float:hover,
+  .surface-hover:hover {
+    transform: none;
+    box-shadow: inherit;
   }
 }

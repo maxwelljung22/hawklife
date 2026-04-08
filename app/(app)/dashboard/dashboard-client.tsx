@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowUpRight, CalendarDays, Compass, Megaphone, Sparkles, Vote } from "lucide-react";
@@ -44,6 +44,7 @@ export function DashboardClient({
   nhsRecord,
   unreadNotifs,
 }: Props) {
+  const reduceMotion = useReducedMotion();
   const hour    = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user.name?.split(" ")[0] ?? "there";
@@ -56,6 +57,7 @@ export function DashboardClient({
     ? [{ href: "/voting", label: "Create polls", icon: Vote, note: "Launch quick votes without slowing down the day" }]
     : [];
   const allQuickActions = [...quickActions, ...managementActions];
+  const cardHoverProps = reduceMotion ? {} : { whileHover: { y: -3 } };
 
   return (
     <div className="space-y-7">
@@ -100,6 +102,7 @@ export function DashboardClient({
               <Link key={action.href} href={action.href}>
                 <motion.div
                   {...fu(0.08 + index * 0.05)}
+                  {...cardHoverProps}
                   className="group rounded-[28px] border border-border bg-background/70 p-4 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:bg-background hover:shadow-card-hover dark:border-white/8 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]"
                 >
                   <div className="mb-4 flex items-center justify-between">

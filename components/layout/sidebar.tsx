@@ -241,7 +241,7 @@ export function Sidebar({
       <div className={cn("fixed inset-0 z-[55] bg-black/35 transition-opacity duration-300 lg:hidden", open ? "opacity-100" : "pointer-events-none opacity-0")} onClick={onClose} />
       <aside
         className={cn(
-          "sidebar-bg fixed inset-y-0 left-0 z-[60] flex w-72 flex-col border-r transition-transform duration-300 ease-out",
+          "sidebar-bg fixed inset-y-0 left-0 z-[60] hidden w-72 flex-col border-r transition-transform duration-300 ease-out lg:flex",
           open ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}
@@ -269,7 +269,7 @@ export function MobileSidebarSheet({
       />
       <aside
         className={cn(
-          "sidebar-bg absolute inset-y-0 left-0 flex w-[min(86vw,22rem)] flex-col border-r transition-transform duration-300 ease-out",
+          "sidebar-bg absolute inset-y-0 left-0 flex w-[min(88vw,22rem)] flex-col border-r pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ borderColor: "hsl(var(--shell-sidebar-border))" }}

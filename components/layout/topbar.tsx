@@ -122,7 +122,7 @@ export function Topbar({ user, onToggleSidebar, unreadNotifications, notificatio
 
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted hover:text-foreground hover:shadow-card sm:h-11 sm:w-11 sm:rounded-2xl"
+            className="hidden h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted hover:text-foreground hover:shadow-card sm:flex sm:h-11 sm:w-11 sm:rounded-2xl"
             title="Toggle theme"
             aria-label="Toggle theme"
           >
@@ -146,7 +146,7 @@ export function Topbar({ user, onToggleSidebar, unreadNotifications, notificatio
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(20rem,calc(100vw-1.5rem))] origin-top-right animate-fade-up overflow-hidden rounded-3xl border border-border bg-card shadow-modal">
+              <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(22rem,calc(100vw-1rem))] origin-top-right animate-fade-up overflow-hidden rounded-3xl border border-border bg-card shadow-modal sm:w-[min(22rem,calc(100vw-1.5rem))]">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <p className="text-[13px] font-bold text-foreground">Notifications</p>
                   <span className="text-[11px] text-muted-foreground">{unreadNotifications} unread</span>
