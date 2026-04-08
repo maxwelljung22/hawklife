@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { canAccessFacultyTools } from "@/lib/roles";
+import { canAccessAdmin, canAccessFacultyTools } from "@/lib/roles";
 import { canManageClubAttendanceSession } from "@/lib/flex-attendance";
 import {
   checkRateLimit,
@@ -11,7 +11,6 @@ import {
   withRateLimitHeaders,
 } from "@/lib/security";
 import {
-  buildAbsentRows,
   buildAttendanceCsv,
   buildAttendancePdf,
   buildMissingSignupRows,
@@ -86,46 +85,46 @@ export async function GET(request: Request) {
     );
   }
 
-  const { dayStart, dayEnd } = getFlexBlockWindow(attendanceSession.date);
-  const [students, dayRecords] = await Promise.all([
-    prisma.user.findMany({
-      orderBy: [{ name: "asc" }, { email: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        grade: true,
-        graduationYear: true,
-      },
-    }),
-    prisma.attendanceRecord.findMany({
-      where: {
-        session: {
-          date: {
-            gte: dayStart,
-            lt: dayEnd,
+  const isAdmin = canAccessAdmin(session.user.role);
+  const rows = buildRecordedAttendanceRows(attendanceSession.records);
+
+  if (isAdmin) {
+    const { dayStart, dayEnd } = getFlexBlockWindow(attendanceSession.date);
+    const [students, dayRecords] = await Promise.all([
+      prisma.user.findMany({
+        orderBy: [{ name: "asc" }, { email: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          grade: true,
+          graduationYear: true,
+        },
+      }),
+      prisma.attendanceRecord.findMany({
+        where: {
+          session: {
+            date: {
+              gte: dayStart,
+              lt: dayEnd,
+            },
           },
         },
-      },
-      select: {
-        userId: true,
-      },
-    }),
-  ]);
+        select: {
+          userId: true,
+        },
+      }),
+    ]);
 
-  const signedUpUserIds = new Set(dayRecords.map((record) => record.userId));
-  const missingSignupStudents = students
-    .filter(canParticipateInFlex)
-    .filter((student) => !signedUpUserIds.has(student.id));
-  const absentRecords = attendanceSession.records.filter((record) =>
-    record.status === "ABSENT" || record.status === "ABSENT_EXCUSED"
-  );
-  const rows = [
-    ...buildRecordedAttendanceRows(attendanceSession.records),
-    ...buildMissingSignupRows(missingSignupStudents),
-    ...buildAbsentRows(absentRecords),
-  ];
+    const signedUpUserIds = new Set(dayRecords.map((record) => record.userId));
+    const missingSignupStudents = students
+      .filter(canParticipateInFlex)
+      .filter((student) => !signedUpUserIds.has(student.id));
+
+    rows.push(...buildMissingSignupRows(missingSignupStudents));
+  }
+
   const filenameBase = sanitizeAttachmentFilename(attendanceSession.title, "attendance");
 
   if (format === "csv") {

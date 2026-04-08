@@ -686,6 +686,7 @@ export function FacultySessionManager({
                         <Button variant="secondary" onClick={() => {
                           setSelectedQrSessionId(session.id);
                           setReportView("recorded");
+                          setActiveTab("attendance");
                         }}>
                           <QrCode className="h-4 w-4" />
                           Show QR
