@@ -31,6 +31,10 @@ async function fetchQrState(sessionId: string, mode: "rotating" | "static"): Pro
   };
 }
 
+function buildQrImageUrl(qrValue: string) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=720x720&data=${encodeURIComponent(qrValue)}`;
+}
+
 export function QrDisplay({
   sessionId,
   title,
@@ -79,6 +83,218 @@ export function QrDisplay({
     return Math.max(0, Math.ceil((state.expiresAt - tick) / 1000));
   }, [state, tick]);
 
+  const printQrPoster = async () => {
+    const printableState =
+      state.status === "ready" && state.mode === "static" ? state : await fetchQrState(sessionId, "static");
+
+    if (printableState.status !== "ready") {
+      setState(printableState);
+      return;
+    }
+
+    setKeepSameQr(true);
+    setState(printableState);
+
+    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=960,height=1200");
+    if (!printWindow) return;
+
+    const qrImageUrl = buildQrImageUrl(printableState.qrValue);
+    const logoUrl = `${window.location.origin}/hawklife-hawk.png`;
+    const escapedTitle = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const escapedType = typeLabel.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    printWindow.document.write(`<!doctype html>
+<html>
+  <head>
+    <title>${escapedTitle} QR Poster</title>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Satoshi", "Avenir Next", "Segoe UI", Inter, sans-serif;
+        background: #f8f4ef;
+        color: #161311;
+      }
+      .sheet {
+        min-height: 100vh;
+        padding: 40px;
+        background:
+          radial-gradient(circle at top right, rgba(184, 146, 64, 0.18), transparent 34%),
+          radial-gradient(circle at bottom left, rgba(139, 26, 26, 0.14), transparent 32%),
+          #f8f4ef;
+      }
+      .card {
+        max-width: 820px;
+        margin: 0 auto;
+        border-radius: 36px;
+        background: white;
+        border: 1px solid rgba(139, 26, 26, 0.12);
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+      .top {
+        padding: 36px 40px 20px;
+        background: linear-gradient(135deg, rgba(139, 26, 26, 0.1), rgba(184, 146, 64, 0.08));
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand img {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+      }
+      .brand-mark {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        line-height: 1;
+      }
+      .brand-mark .life {
+        color: #8b1a1a;
+      }
+      .brand-sub {
+        margin-top: 4px;
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #7b6f67;
+        font-weight: 700;
+      }
+      .eyebrow {
+        margin: 28px 0 0;
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #8b1a1a;
+        font-weight: 700;
+      }
+      .title {
+        margin: 10px 0 0;
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: 48px;
+        letter-spacing: -0.06em;
+        line-height: 1.02;
+      }
+      .meta {
+        margin-top: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(22, 19, 17, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 13px;
+        font-weight: 600;
+        color: #5b514b;
+      }
+      .content {
+        padding: 28px 40px 40px;
+        text-align: center;
+      }
+      .qr-shell {
+        width: 100%;
+        max-width: 430px;
+        margin: 0 auto;
+        padding: 22px;
+        border-radius: 32px;
+        background: #fff;
+        border: 1px solid rgba(22, 19, 17, 0.08);
+        box-shadow: 0 18px 52px rgba(15, 23, 42, 0.08);
+      }
+      .qr-shell img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .note {
+        margin: 24px auto 0;
+        max-width: 520px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #5f5650;
+      }
+      .footer {
+        margin-top: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(139, 26, 26, 0.08);
+        color: #8b1a1a;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      @page {
+        size: letter portrait;
+        margin: 0.45in;
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .sheet {
+          padding: 0;
+          background: white;
+        }
+        .card {
+          box-shadow: none;
+          border: 1px solid rgba(22, 19, 17, 0.12);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <section class="card">
+        <div class="top">
+          <div class="brand">
+            <img src="${logoUrl}" alt="HawkLife logo" />
+            <div>
+              <div class="brand-mark">Hawk<span class="life">Life</span></div>
+              <div class="brand-sub">St. Joseph's Preparatory School</div>
+            </div>
+          </div>
+          <p class="eyebrow">${escapedType} Attendance</p>
+          <h1 class="title">${escapedTitle}</h1>
+          <div class="meta">${FLEX_BLOCK_LABEL} · Static QR for room display</div>
+        </div>
+        <div class="content">
+          <div class="qr-shell">
+            <img src="${qrImageUrl}" alt="QR code for ${escapedTitle}" />
+          </div>
+          <p class="note">Students should open HawkLife, join the correct flex block, and then scan this code when they arrive.</p>
+          <div class="footer">Live HawkLife Attendance</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`);
+    printWindow.document.close();
+
+    const finalizePrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    };
+
+    printWindow.onload = () => {
+      setTimeout(finalizePrint, 250);
+    };
+  };
+
   useEffect(() => {
     if (state.status !== "ready") return;
     if (state.mode === "static") return;
@@ -117,7 +333,7 @@ export function QrDisplay({
             />
             Keep same QR code for printing
           </label>
-          <Button variant="secondary" onClick={() => window.print()}>
+          <Button variant="secondary" onClick={() => void printQrPoster()}>
             <Printer className="h-4 w-4" />
             Print QR
           </Button>
@@ -158,7 +374,7 @@ export function QrDisplay({
               <div className="rounded-[34px] border border-border bg-white p-5 shadow-[0_18px_46px_rgba(15,23,42,0.10)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(state.qrValue)}`}
+                  src={buildQrImageUrl(state.qrValue)}
                   alt={`QR code for ${title}`}
                   className="h-[260px] w-[260px] rounded-[20px] object-cover sm:h-[320px] sm:w-[320px]"
                 />

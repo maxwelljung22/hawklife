@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   addStudentsToFlexSession,
+  addStudentsToMultipleFlexSessions,
   createFlexSession,
   deleteFlexSession,
   markFlexAttendanceManually,
@@ -77,8 +78,11 @@ export function FacultySessionManager({
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [bulkStudentIds, setBulkStudentIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<"create" | "attendance" | "assign">("create");
   const [reportView, setReportView] = useState<"recorded" | "missing" | "absent">("recorded");
+  const [assignmentSessionIds, setAssignmentSessionIds] = useState<string[]>([]);
   const isAdmin = currentRole === "ADMIN";
+  const canUsePresign = currentRole === "ADMIN" || currentRole === "FACULTY";
   const [form, setForm] = useState({
     title: "",
     type: "STUDY_HALL" as AttendanceSessionType,
@@ -100,6 +104,7 @@ export function FacultySessionManager({
   const todaySessions = sessions.filter((session) => new Date(session.date).toDateString() === todayKey);
   const upcomingSessions = sessions.filter((session) => new Date(session.date) > new Date() && new Date(session.date).toDateString() !== todayKey);
   const historySessions = sessions.filter((session) => new Date(session.date) < new Date(new Date().setHours(0, 0, 0, 0)));
+  const assignableSessions = sessions.filter((session) => new Date(session.date) >= new Date(new Date().setHours(0, 0, 0, 0)));
   const selectedDateKey = selectedQrSession ? new Date(selectedQrSession.date).toDateString() : null;
   const availableStudents = useMemo(() => {
     const query = studentQuery.trim().toLowerCase();
@@ -302,6 +307,57 @@ export function FacultySessionManager({
     );
   };
 
+  const toggleAssignmentSession = (sessionId: string) => {
+    setAssignmentSessionIds((current) =>
+      current.includes(sessionId) ? current.filter((value) => value !== sessionId) : [...current, sessionId]
+    );
+  };
+
+  const handleRequireStudents = () => {
+    if (assignmentSessionIds.length === 0) {
+      toast({
+        title: "Choose flex dates first",
+        description: "Pick one or more flex sessions to pre-sign students into.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (effectiveSelectedIds.length === 0) {
+      toast({
+        title: "Choose students first",
+        description: "Select one or more students to require for the chosen flex dates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await addStudentsToMultipleFlexSessions(assignmentSessionIds, effectiveSelectedIds);
+      if ("error" in result) {
+        toast({
+          title: "Couldn't require flex signup",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Flex signup required",
+        description:
+          result.assignedStudentCount > 1 || result.assignedSessionCount > 1
+            ? `${result.assignedStudentCount} students were pre-signed into ${result.assignedSessionCount} flex blocks.`
+            : `${result.studentName} was pre-signed into ${result.sessionTitle}.`,
+      });
+      setAssignmentSessionIds([]);
+      setSelectedStudentId("");
+      setStudentQuery("");
+      setBulkStudentIds([]);
+      router.refresh();
+    });
+  };
+
   const getStatusClass = (status: AttendanceStatus) => {
     switch (status) {
       case "PRESENT":
@@ -339,8 +395,30 @@ export function FacultySessionManager({
           Open club meetings, study halls, and special events for today&apos;s flex window. Each session gets a live
           attendance QR that refreshes automatically, or you can keep the same QR for printing.
         </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {[
+            { key: "create", label: "Create Sessions" },
+            { key: "attendance", label: "Attendance" },
+            { key: "assign", label: "Require / Pre-sign" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key as "create" | "attendance" | "assign")}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                activeTab === tab.key
+                  ? "border-[hsl(var(--primary)/0.3)] bg-[hsl(var(--primary)/0.08)] text-foreground"
+                  : "border-border bg-background/70 text-muted-foreground"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </section>
 
+      {activeTab === "create" ? (
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="surface-card rounded-[32px] p-5 sm:p-6">
           <div className="flex items-center justify-between">
@@ -563,7 +641,12 @@ export function FacultySessionManager({
               )}
             </div>
           </div>
+        </section>
+      </div>
+      ) : null}
 
+      {activeTab === "attendance" ? (
+      <div className="space-y-6">
           <AnimatePresence mode="wait">
             {selectedQrSession ? (
               <motion.div
@@ -701,7 +784,7 @@ export function FacultySessionManager({
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-2">
-                          {isAdmin ? (
+                          {canUsePresign ? (
                             <Button variant="secondary" size="lg" onClick={() => handleBulkAdd()} disabled={isPending || effectiveSelectedIds.length === 0}>
                               <Plus className="h-4 w-4" />
                               Add selected
@@ -826,7 +909,7 @@ export function FacultySessionManager({
                                       <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
                                         Not signed up
                                       </span>
-                                      {isAdmin ? (
+                                      {canUsePresign ? (
                                         <Button size="sm" variant="secondary" onClick={() => handleBulkAdd(student.id)} disabled={isPending}>
                                           <Plus className="h-4 w-4" />
                                           Add to session
@@ -871,7 +954,7 @@ export function FacultySessionManager({
                                   </div>
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {isAdmin ? (
+                                  {canUsePresign ? (
                                     <Button size="sm" variant="secondary" onClick={() => handleBulkAdd(attendee.user.id)} disabled={isPending}>
                                       <Plus className="h-4 w-4" />
                                       Add
@@ -906,9 +989,17 @@ export function FacultySessionManager({
                   </section>
                 </div>
               </motion.div>
-            ) : null}
+            ) : (
+              <div className="surface-card rounded-[32px] p-8 text-center">
+                <p className="text-base font-semibold text-foreground">Pick a flex session to manage attendance</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Choose any active or scheduled flex block below to open its QR code, roster, and reports.
+                </p>
+              </div>
+            )}
           </AnimatePresence>
 
+          <div className="grid gap-6 xl:grid-cols-2">
           <div className="surface-card rounded-[32px] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -986,8 +1077,214 @@ export function FacultySessionManager({
               )}
             </div>
           </div>
+          </div>
+      </div>
+      ) : null}
+
+      {activeTab === "assign" ? (
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="surface-card rounded-[32px] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Require flex signup</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Pre-sign students into flex blocks</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Teachers and admins can select students, then assign them into one or more upcoming flex dates ahead of time.
+              </p>
+            </div>
+            <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+              {assignmentSessionIds.length} dates selected
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setAssignmentSessionIds(todaySessions.map((session) => session.id))}
+                className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+              >
+                Select today
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentSessionIds(assignableSessions.slice(0, 5).map((session) => session.id))}
+                className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+              >
+                Next 5 blocks
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentSessionIds(assignableSessions.map((session) => session.id))}
+                className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+              >
+                Select all shown
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentSessionIds([])}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
+              >
+                Clear
+              </button>
+            </div>
+
+            <div className="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
+              {assignableSessions.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-border p-6 text-sm text-muted-foreground">
+                  Create a flex block first, then you can require students for that date here.
+                </div>
+              ) : (
+                assignableSessions.map((session) => {
+                  const selected = assignmentSessionIds.includes(session.id);
+                  return (
+                    <button
+                      key={session.id}
+                      type="button"
+                      onClick={() => toggleAssignmentSession(session.id)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-[24px] border px-4 py-4 text-left transition-colors",
+                        selected
+                          ? "border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--primary)/0.08)]"
+                          : "border-border bg-background hover:bg-muted/50"
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{session.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(session.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · {session.location}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
+                        {selected ? <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary))]" /> : null}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="surface-card rounded-[32px] p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Student selection</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Choose who to require</h3>
+            </div>
+            <select
+              value={classFilter}
+              onChange={(event) => setClassFilter(event.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-2 text-[12px] text-foreground outline-none"
+            >
+              <option value="all">All classes</option>
+              {[2026, 2027, 2028, 2029].map((year) => (
+                <option key={year} value={year}>Class of {year}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border bg-background px-3">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={studentQuery}
+              onChange={(event) => setStudentQuery(event.target.value)}
+              placeholder="Search by name or email"
+              className="h-12 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+
+          <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+            {availableStudents.map((student) => {
+              const active = selectedStudentId === student.id;
+              const bulkSelected = bulkStudentIds.includes(student.id);
+              return (
+                <div
+                  key={student.id}
+                  className={cn(
+                    "flex items-center gap-2 rounded-2xl border px-3 py-3 transition-colors",
+                    active || bulkSelected
+                      ? "border-[hsl(var(--primary)/0.26)] bg-[hsl(var(--primary)/0.06)]"
+                      : "border-border bg-background hover:bg-muted/50"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentId(student.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-medium text-foreground">{student.name || "Unnamed student"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {student.email || "No email"}{student.graduationYear ? ` · Class of ${student.graduationYear}` : ""}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleBulkStudent(student.id)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      bulkSelected
+                        ? "border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--primary)/0.12)] text-foreground"
+                        : "border-border bg-background text-muted-foreground"
+                    )}
+                  >
+                    {bulkSelected ? "Selected" : "Select"}
+                  </button>
+                  {active ? <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary))]" /> : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 rounded-[24px] border border-border bg-background px-4 py-3">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Mass select by class</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[2026, 2027, 2028, 2029].map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() =>
+                    setBulkStudentIds(
+                      students
+                        .filter((student) => student.graduationYear === year)
+                        .map((student) => student.id)
+                    )
+                  }
+                  className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+                >
+                  Class of {year}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setBulkStudentIds(availableStudents.map((student) => student.id))}
+                className="rounded-full border border-border bg-muted px-3 py-1.5 text-[12px] font-medium text-foreground"
+              >
+                Select filtered
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkStudentIds([])}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
+              >
+                Clear
+              </button>
+            </div>
+            <p className="mt-2 text-[12px] text-muted-foreground">{effectiveSelectedIds.length} students ready to be required</p>
+          </div>
+
+          <div className="mt-4 rounded-[24px] border border-border bg-muted/35 p-4 text-sm text-muted-foreground">
+            Selected students will be pre-signed into the chosen flex blocks as joined attendees, so they appear on rosters before the date arrives.
+          </div>
+
+          <Button size="lg" className="mt-4 w-full" onClick={handleRequireStudents} disabled={isPending || effectiveSelectedIds.length === 0 || assignmentSessionIds.length === 0}>
+            <Plus className="h-4 w-4" />
+            Require selected students
+          </Button>
         </section>
       </div>
+      ) : null}
     </motion.div>
   );
 }

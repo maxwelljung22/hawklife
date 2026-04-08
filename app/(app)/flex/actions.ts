@@ -541,8 +541,8 @@ export async function markFlexAttendanceManually(
 export async function addStudentsToFlexSession(sessionId: string, userIds: string | string[]) {
   const user = await requireUser();
   if (!user) return { error: "You need to sign in first." };
-  if (user.role !== "ADMIN") {
-    return { error: "Only admins can bulk add students to a flex session." };
+  if (!canAccessFacultyTools(user.role)) {
+    return { error: "Only faculty and admins can pre-sign students into a flex session." };
   }
 
   const session = await prisma.attendanceSession.findUnique({
@@ -624,5 +624,100 @@ export async function addStudentsToFlexSession(sessionId: string, userIds: strin
     title: session.title,
     studentName: eligibleUsers[0]?.name || eligibleUsers[0]?.email || "Student",
     updatedCount: records.length,
+  };
+}
+
+export async function addStudentsToMultipleFlexSessions(sessionIds: string[], userIds: string | string[]) {
+  const user = await requireUser();
+  if (!user) return { error: "You need to sign in first." };
+  if (!canAccessFacultyTools(user.role)) {
+    return { error: "Only faculty and admins can require flex signups." };
+  }
+
+  const targetSessionIds = Array.from(new Set(sessionIds.filter(Boolean)));
+  if (targetSessionIds.length === 0) {
+    return { error: "Select at least one flex block date first." };
+  }
+
+  const targetUserIds = Array.isArray(userIds) ? Array.from(new Set(userIds)) : [userIds];
+  if (targetUserIds.length === 0) {
+    return { error: "Select at least one student first." };
+  }
+
+  const sessions = await prisma.attendanceSession.findMany({
+    where: { id: { in: targetSessionIds } },
+    select: {
+      id: true,
+      title: true,
+      clubId: true,
+      createdById: true,
+      date: true,
+    },
+    orderBy: [{ date: "asc" }, { title: "asc" }],
+  });
+
+  if (sessions.length === 0) {
+    return { error: "No flex sessions were found for those dates." };
+  }
+
+  for (const session of sessions) {
+    const canManage = session.clubId
+      ? await canManageClubAttendanceSession(session.clubId, user.id, user.role)
+      : canAccessFacultyTools(user.role) || session.createdById === user.id;
+
+    if (!canManage) {
+      return { error: `You don't have permission to require students for ${session.title}.` };
+    }
+  }
+
+  const targetUsers = await prisma.user.findMany({
+    where: {
+      id: { in: targetUserIds },
+    },
+    select: { id: true, name: true, email: true, role: true, graduationYear: true },
+  });
+
+  const eligibleUsers = targetUsers.filter(canParticipateInFlex);
+  if (eligibleUsers.length === 0) {
+    return { error: "No eligible flex participants were selected." };
+  }
+
+  const now = new Date();
+  let createdOrUpdatedCount = 0;
+
+  for (const session of sessions) {
+    for (const targetUser of eligibleUsers) {
+      await prisma.attendanceRecord.upsert({
+        where: {
+          sessionId_userId: {
+            sessionId: session.id,
+            userId: targetUser.id,
+          },
+        },
+        update: {},
+        create: {
+          sessionId: session.id,
+          userId: targetUser.id,
+          status: "JOINED",
+          present: false,
+          joinedAt: now,
+          checkIn: null,
+        },
+      });
+      createdOrUpdatedCount += 1;
+    }
+  }
+
+  revalidatePath("/flex");
+  revalidatePath("/dashboard");
+  revalidatePath("/faculty/create-session");
+
+  return {
+    success: true,
+    assignedSessionCount: sessions.length,
+    assignedStudentCount: eligibleUsers.length,
+    createdOrUpdatedCount,
+    sessionTitle: sessions[0]?.title ?? "Flex block",
+    studentName: eligibleUsers[0]?.name || eligibleUsers[0]?.email || "Student",
   };
 }
