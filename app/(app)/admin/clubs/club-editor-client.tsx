@@ -23,6 +23,8 @@ const GRADIENT_PRESETS = [
   { from: "#1b4332", to: "#0a2218", label: "Emerald" },
 ] as const;
 
+const MEETING_DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
+
 type ClubEditorValues = {
   id?: string;
   name: string;
@@ -53,6 +55,7 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState(initialValues);
   const [newTag, setNewTag] = useState("");
+  const meetingDayPreset = MEETING_DAY_OPTIONS.includes(form.meetingDay as (typeof MEETING_DAY_OPTIONS)[number]) ? form.meetingDay : "Other";
 
   const set = (k: keyof ClubEditorValues) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -206,9 +209,50 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
           </Section>
 
           <Section label="Meeting Schedule">
+            <div className="rounded-[24px] border border-border bg-muted/40 p-4">
+              <p className="text-[13px] font-semibold text-foreground">Meeting Schedule</p>
+              <p className="mt-2 text-[12px] leading-6 text-muted-foreground">
+                Choose the main weekday for this club. If the schedule rotates or changes, use the custom option and describe it clearly for students.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-6">
+                {MEETING_DAY_OPTIONS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, meetingDay: day }))}
+                    className={cn(
+                      "rounded-xl border px-3 py-3 text-[12.5px] font-medium transition-colors",
+                      meetingDayPreset === day
+                        ? "border-blue-500 bg-blue-600 text-white"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {day}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, meetingDay: current.meetingDay && meetingDayPreset === "Other" ? current.meetingDay : "" }))}
+                  className={cn(
+                    "rounded-xl border px-3 py-3 text-[12.5px] font-medium transition-colors",
+                    meetingDayPreset === "Other"
+                      ? "border-blue-500 bg-blue-600 text-white"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  Other
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="Day(s)">
-                <input value={form.meetingDay} onChange={set("meetingDay")} placeholder="e.g. Tuesday & Thursday" className={inputCls} />
+              <Field label={meetingDayPreset === "Other" ? "Custom day / cadence" : "Selected day"}>
+                <input
+                  value={form.meetingDay}
+                  onChange={set("meetingDay")}
+                  placeholder={meetingDayPreset === "Other" ? "e.g. Tuesdays & Thursdays, rotating by project" : "Selected weekday"}
+                  className={inputCls}
+                />
               </Field>
               <Field label="Time">
                 <input value={form.meetingTime} onChange={set("meetingTime")} placeholder="e.g. 3:15 PM" className={inputCls} />

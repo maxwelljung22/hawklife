@@ -379,11 +379,65 @@ function ActivityTab({
   );
 }
 
+function getClubRatings(club: any) {
+  const memberCount = club._count.memberships ?? 0;
+  const activityCount = (club._count.posts ?? 0) + (club._count.events ?? 0);
+  const ageDays = Math.max(1, Math.floor((Date.now() - +new Date(club.createdAt)) / 86_400_000));
+
+  const memberRetention = memberCount >= 40 ? { value: "Elite", score: 5 } : memberCount >= 24 ? { value: "Strong", score: 4 } : memberCount >= 12 ? { value: "Stable", score: 3 } : memberCount >= 6 ? { value: "Weak", score: 2 } : { value: "Fragile", score: 1 };
+  const recentGrowth = ageDays <= 45 && memberCount >= 15 ? { value: "Rapid", score: 5 } : memberCount >= 20 ? { value: "Healthy", score: 4 } : memberCount >= 10 ? { value: "Slow", score: 3 } : memberCount >= 5 ? { value: "Early", score: 2 } : { value: "Stalled", score: 1 };
+  const activity = activityCount >= 16 ? { value: "Thriving", score: 5 } : activityCount >= 10 ? { value: "Active", score: 4 } : activityCount >= 5 ? { value: "Steady", score: 3 } : activityCount >= 2 ? { value: "Sparse", score: 2 } : { value: "Dormant", score: 1 };
+  const establishment = ageDays >= 365 ? { value: "Established", score: 5 } : ageDays >= 180 ? { value: "Grounded", score: 4 } : ageDays >= 90 ? { value: "Emerging", score: 3 } : ageDays >= 30 ? { value: "New", score: 2 } : { value: "Launching", score: 1 };
+  const policyCompliance = club.isFlagged ? { value: "Risk", score: 1 } : club.pendingEditStatus === "PENDING" ? { value: "Review", score: 3 } : { value: "Model", score: 5 };
+  const futureOpportunities = club.requiresApp && memberCount < 12 ? { value: "Selective", score: 3 } : activityCount >= 8 || memberCount >= 20 ? { value: "Promising", score: 4 } : club.tags?.length >= 3 ? { value: "Hopeful", score: 3 } : { value: "Building", score: 2 };
+
+  const criteria = [
+    { key: "memberRetention", label: "Member Retention", ...memberRetention },
+    { key: "recentGrowth", label: "Recent Growth", ...recentGrowth },
+    { key: "activity", label: "Activity", ...activity },
+    { key: "establishment", label: "Establishment", ...establishment },
+    { key: "policyCompliance", label: "Policy Compliance", ...policyCompliance },
+    { key: "futureOpportunities", label: "Future Opportunities", ...futureOpportunities },
+  ];
+
+  const average = criteria.reduce((sum, item) => sum + item.score, 0) / criteria.length;
+  const aggregate = average >= 4.5 ? "Exceptional" : average >= 3.7 ? "Strong" : average >= 2.8 ? "Average" : average >= 2 ? "Developing" : "At Risk";
+
+  return { aggregate, criteria };
+}
+
+function ClubRatingCard({ club }: { club: any }) {
+  const rating = getClubRatings(club);
+
+  return (
+    <div className="rounded-[22px] border border-border bg-[linear-gradient(180deg,rgba(20,20,24,0.96),rgba(30,30,36,0.96))] px-4 py-4 text-white shadow-[0_16px_42px_rgba(15,23,42,0.18)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-white/55">{club.name} Aggregate Rating</p>
+          <p className="mt-1 text-[22px] font-semibold tracking-[-0.05em] text-[#7da7ff]">{rating.aggregate}</p>
+        </div>
+        <div className="text-right text-[10px] uppercase tracking-[.12em] text-white/35">Health Snapshot</div>
+      </div>
+      <div className="mt-4 divide-y divide-white/8 overflow-hidden rounded-[16px] border border-white/8 bg-white/[0.04]">
+        {rating.criteria.map((item) => (
+          <div key={item.key} className="flex items-center justify-between gap-3 px-3 py-2.5 text-[12px]">
+            <span className="text-white/78">{item.label}</span>
+            <span className="font-semibold text-white">{item.value ?? item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Clubs Tab ────────────────────────────────────────────────────────────────
 function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: boolean; canFlag: boolean }) {
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
   const pendingRequests = clubs.filter((club) => club.pendingEditStatus === "PENDING" && club.pendingEditRequest);
+  const ratedClubs = [...clubs]
+    .sort((a, b) => (b._count.memberships + b._count.posts + b._count.events) - (a._count.memberships + a._count.posts + a._count.events))
+    .slice(0, 3);
 
   const handleDelete = (clubId: string, clubName: string) => {
     if (!confirm(`Archive "${clubName}"? This will hide it from students.`)) return;
@@ -404,6 +458,11 @@ function ClubsTab({ clubs, canArchive, canFlag }: { clubs: any[]; canArchive: bo
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-3">
+        {ratedClubs.map((club) => (
+          <ClubRatingCard key={club.id} club={club} />
+        ))}
+      </div>
       {pendingRequests.length > 0 ? (
         <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
           <p className="text-[12px] font-bold uppercase tracking-[.08em] text-muted-foreground">Pending Club Edit Requests</p>
