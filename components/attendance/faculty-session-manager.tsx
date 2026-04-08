@@ -756,6 +756,21 @@ export function FacultySessionManager({
                       </div>
                     </div>
 
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button variant="secondary" onClick={() => exportAttendance("csv", selectedQrSession.id)}>
+                        <Download className="h-4 w-4" />
+                        Spreadsheet
+                      </Button>
+                      <Button variant="secondary" onClick={() => exportAttendance("pdf", selectedQrSession.id)}>
+                        <Download className="h-4 w-4" />
+                        PDF
+                      </Button>
+                      <Button variant="ghost" onClick={() => handleDelete(selectedQrSession.id)} disabled={isPending}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete flex block
+                      </Button>
+                    </div>
+
                     <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                       <div className="rounded-[28px] border border-border bg-muted/35 p-4 sm:p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -1134,23 +1149,34 @@ export function FacultySessionManager({
                 </div>
               ) : (
                 upcomingSessions.slice(0, 10).map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedQrSessionId(session.id);
-                      setReportView("recorded");
-                    }}
-                    className="flex flex-col items-start gap-3 rounded-[24px] border border-border bg-background px-4 py-4 text-left transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-[24px] border border-border bg-background px-4 py-4 text-left"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{session.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · {session.location}
-                      </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedQrSessionId(session.id);
+                        setReportView("recorded");
+                        setActiveTab("attendance");
+                      }}
+                      className="flex flex-col items-start gap-3 transition-colors hover:bg-muted/0 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{session.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(session.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · {session.location}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
+                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(session.id)} disabled={isPending}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
                     </div>
-                    <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
@@ -1173,23 +1199,34 @@ export function FacultySessionManager({
                 </div>
               ) : (
                 historySessions.slice(0, 12).map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedQrSessionId(session.id);
-                      setReportView("recorded");
-                    }}
-                    className="flex flex-col items-start gap-3 rounded-[24px] border border-border bg-background px-4 py-4 text-left transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-[24px] border border-border bg-background px-4 py-4 text-left"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{session.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · {session.attendeeCount} recorded
-                      </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedQrSessionId(session.id);
+                        setReportView("recorded");
+                        setActiveTab("attendance");
+                      }}
+                      className="flex flex-col items-start gap-3 transition-colors hover:bg-muted/0 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{session.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(session.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · {session.attendeeCount} recorded
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
+                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(session.id)} disabled={isPending}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
                     </div>
-                    <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
