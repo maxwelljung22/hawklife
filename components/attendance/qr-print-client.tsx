@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 export function QrPrintClient() {
   useEffect(() => {
+    let closed = false;
+
     const waitForImage = (img: HTMLImageElement | null) =>
       new Promise<void>((resolve) => {
         if (!img) {
@@ -40,7 +42,20 @@ export function QrPrintClient() {
       });
     };
 
+    const closeAfterPrint = () => {
+      if (closed) return;
+      closed = true;
+      window.close();
+    };
+
+    window.addEventListener("afterprint", closeAfterPrint);
+    const closeFallback = window.setTimeout(closeAfterPrint, 4000);
     void printWhenReady();
+
+    return () => {
+      window.removeEventListener("afterprint", closeAfterPrint);
+      window.clearTimeout(closeFallback);
+    };
   }, []);
 
   return null;

@@ -52,44 +52,50 @@ export default async function FlexPrintQrPage({
   const typeLabel = getSessionTypeLabel(attendanceSession.type);
 
   return (
-    <main className="min-h-screen bg-[#f8f4ef] text-[#161311] print:bg-white">
+    <main className="min-h-screen bg-[#f8f4ef] text-[#161311] print:min-h-0 print:bg-white">
       <QrPrintClient />
-      <div className="mx-auto min-h-screen max-w-5xl px-4 py-6 sm:px-6 sm:py-10 print:max-w-none print:px-0 print:py-0">
-        <section className="mx-auto overflow-hidden rounded-[36px] border border-[rgba(139,26,26,0.12)] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)] print:max-w-none print:rounded-none print:border print:shadow-none">
-          <div className="bg-[linear-gradient(135deg,rgba(139,26,26,0.1),rgba(184,146,64,0.08))] px-6 py-8 sm:px-10 sm:py-9">
-            <div className="flex items-center gap-4">
+      <style>{`
+        @page {
+          size: letter portrait;
+          margin: 0.35in;
+        }
+      `}</style>
+      <div className="mx-auto flex min-h-screen max-w-[8.2in] items-center justify-center px-4 py-6 print:block print:min-h-0 print:max-w-none print:px-0 print:py-0">
+        <section className="w-full overflow-hidden rounded-[32px] border border-[rgba(139,26,26,0.12)] bg-white shadow-[0_20px_70px_rgba(15,23,42,0.08)] print:rounded-[24px] print:border-[rgba(22,19,17,0.14)] print:shadow-none">
+          <div className="bg-[linear-gradient(135deg,rgba(139,26,26,0.1),rgba(184,146,64,0.08))] px-6 py-6 sm:px-8 sm:py-7 print:px-7 print:py-6">
+            <div className="flex items-center gap-3">
               <Image
                 id="print-logo"
                 src="/hawklife-hawk.png"
                 alt="HawkLife logo"
-                width={72}
-                height={72}
-                className="h-[56px] w-[56px] object-contain sm:h-[72px] sm:w-[72px]"
+                width={64}
+                height={64}
+                className="h-[52px] w-[52px] object-contain print:h-[50px] print:w-[50px]"
                 priority
               />
               <div>
-                <div className="text-[30px] font-bold leading-none tracking-[-0.06em] sm:text-[34px]">
+                <div className="text-[28px] font-bold leading-none tracking-[-0.06em] print:text-[26px]">
                   Hawk<span className="text-[#8b1a1a]">Life</span>
                 </div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#7b6f67] sm:text-[11px]">
+                <div className="mt-1 text-[9.5px] font-bold uppercase tracking-[0.22em] text-[#7b6f67] print:text-[9px]">
                   St. Joseph&apos;s Preparatory School
                 </div>
               </div>
             </div>
 
-            <p className="mt-7 text-[12px] font-bold uppercase tracking-[0.22em] text-[#8b1a1a]">
+            <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.22em] text-[#8b1a1a] print:mt-5 print:text-[10px]">
               {typeLabel} Attendance
             </p>
-            <h1 className="mt-3 text-balance font-serif text-[2.25rem] leading-tight tracking-[-0.06em] sm:text-[3rem]">
+            <h1 className="mt-2 text-balance font-serif text-[2.15rem] leading-tight tracking-[-0.06em] sm:text-[2.6rem] print:text-[2rem]">
               {attendanceSession.title}
             </h1>
-            <div className="mt-4 inline-flex items-center rounded-full border border-[rgba(22,19,17,0.1)] bg-white/90 px-4 py-2 text-[12px] font-semibold text-[#5b514b] sm:text-[13px]">
+            <div className="mt-4 inline-flex items-center rounded-full border border-[rgba(22,19,17,0.1)] bg-white/90 px-4 py-2 text-[12px] font-semibold text-[#5b514b] print:mt-3 print:px-3.5 print:py-1.5 print:text-[11px]">
               Flex Block · Static QR for room display
             </div>
           </div>
 
-          <div className="px-6 py-8 text-center sm:px-10 sm:py-10">
-            <div className="mx-auto w-full max-w-[430px] rounded-[32px] border border-[rgba(22,19,17,0.08)] bg-white p-4 shadow-[0_18px_52px_rgba(15,23,42,0.08)] sm:p-[22px]">
+          <div className="px-6 py-6 text-center sm:px-8 sm:py-8 print:px-7 print:py-6">
+            <div className="mx-auto w-full max-w-[4.35in] rounded-[28px] border border-[rgba(22,19,17,0.08)] bg-white p-4 shadow-[0_18px_52px_rgba(15,23,42,0.08)] print:max-w-[4.6in] print:rounded-[24px] print:p-3 print:shadow-none">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 id="print-qr"
@@ -98,10 +104,10 @@ export default async function FlexPrintQrPage({
                 className="block aspect-square w-full"
               />
             </div>
-            <p className="mx-auto mt-6 max-w-[520px] text-[14px] leading-7 text-[#5f5650] sm:text-[15px]">
+            <p className="mx-auto mt-5 max-w-[5.4in] text-[13.5px] leading-6 text-[#5f5650] print:mt-4 print:max-w-[5.7in] print:text-[12px] print:leading-5">
               Students should open HawkLife, join the correct flex block, and then scan this code when they arrive.
             </p>
-            <div className="mt-7 inline-flex items-center rounded-full bg-[rgba(139,26,26,0.08)] px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#8b1a1a]">
+            <div className="mt-6 inline-flex items-center rounded-full bg-[rgba(139,26,26,0.08)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8b1a1a] print:mt-5 print:px-3.5 print:py-1.5 print:text-[10px]">
               Live HawkLife Attendance
             </div>
           </div>
