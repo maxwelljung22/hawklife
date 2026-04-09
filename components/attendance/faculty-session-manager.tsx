@@ -88,6 +88,7 @@ export function FacultySessionManager({
   const [classFilter, setClassFilter] = useState("all");
   const [bulkStudentIds, setBulkStudentIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"create" | "attendance" | "assign">("create");
+  const [attendanceTab, setAttendanceTab] = useState<"qr" | "log" | "reports" | "sessions">("qr");
   const [reportView, setReportView] = useState<"recorded" | "missing" | "absent">("recorded");
   const [assignmentSessionIds, setAssignmentSessionIds] = useState<string[]>([]);
   const [groupName, setGroupName] = useState("");
@@ -213,6 +214,7 @@ export function FacultySessionManager({
         recurrenceDays: [new Date().getDay()],
       });
       setReportView("recorded");
+      setAttendanceTab("qr");
       setSelectedQrSessionId(result.session.id);
       router.refresh();
     });
@@ -237,6 +239,7 @@ export function FacultySessionManager({
       if (selectedQrSessionId === sessionId) {
         setSelectedQrSessionId(null);
         setReportView("recorded");
+        setAttendanceTab("qr");
       }
       router.refresh();
     });
@@ -700,6 +703,7 @@ export function FacultySessionManager({
                           setSelectedQrSessionId(session.id);
                           setReportView("recorded");
                           setActiveTab("attendance");
+                          setAttendanceTab("qr");
                         }}>
                           <QrCode className="h-4 w-4" />
                           Show QR
@@ -735,43 +739,112 @@ export function FacultySessionManager({
                 exit={{ opacity: 0, y: -10 }}
               >
                 <div className="space-y-6">
-                  <QrDisplay
-                    sessionId={selectedQrSession.id}
-                    title={selectedQrSession.title}
-                    subtitle={`Students can scan in for ${selectedQrSession.title} from this live code.`}
-                    typeLabel={getSessionTypeLabel(selectedQrSession.type)}
-                  />
-
-                  <section className="surface-card rounded-[32px] p-5 sm:p-6">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <section className="surface-card rounded-[28px] p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual attendance</p>
-                        <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Mark students manually</h3>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Attendance workspace</p>
+                        <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">{selectedQrSession.title}</h3>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          Faculty and admins can manually record present or late attendance for this session.
+                          Split the workflow into smaller views so scanning, logging, reviewing, and switching sessions each have more space.
                         </p>
                       </div>
-                      <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
-                        {selectedQrSession.attendees.length} recorded
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: "qr", label: "QR Display" },
+                          { key: "log", label: "Log Attendance" },
+                          { key: "reports", label: "Reports" },
+                          { key: "sessions", label: "Sessions" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() => setAttendanceTab(tab.key as "qr" | "log" | "reports" | "sessions")}
+                            className={cn(
+                              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                              attendanceTab === tab.key
+                                ? "border-[hsl(var(--primary)/0.3)] bg-[hsl(var(--primary)/0.08)] text-foreground"
+                                : "border-border bg-background text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
+                  </section>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button variant="secondary" onClick={() => exportAttendance("csv", selectedQrSession.id)}>
-                        <Download className="h-4 w-4" />
-                        Spreadsheet
-                      </Button>
-                      <Button variant="secondary" onClick={() => exportAttendance("pdf", selectedQrSession.id)}>
-                        <Download className="h-4 w-4" />
-                        PDF
-                      </Button>
-                      <Button variant="ghost" onClick={() => handleDelete(selectedQrSession.id)} disabled={isPending}>
-                        <Trash2 className="h-4 w-4" />
-                        Delete flex block
-                      </Button>
-                    </div>
+                  {attendanceTab === "qr" ? (
+                    <>
+                      <QrDisplay
+                        sessionId={selectedQrSession.id}
+                        title={selectedQrSession.title}
+                        subtitle={`Students can scan in for ${selectedQrSession.title} from this live code.`}
+                        typeLabel={getSessionTypeLabel(selectedQrSession.type)}
+                      />
 
-                    <div className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+                      <section className="surface-card rounded-[32px] p-5 sm:p-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">QR tools</p>
+                            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Scan, print, and export</h3>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              Keep this view focused on the live QR, quick exports, and high-level session details.
+                            </p>
+                          </div>
+                          <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+                            {selectedQrSession.attendees.length} recorded
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          <Button variant="secondary" onClick={() => exportAttendance("csv", selectedQrSession.id)}>
+                            <Download className="h-4 w-4" />
+                            Spreadsheet
+                          </Button>
+                          <Button variant="secondary" onClick={() => exportAttendance("pdf", selectedQrSession.id)}>
+                            <Download className="h-4 w-4" />
+                            PDF
+                          </Button>
+                          <Button variant="ghost" onClick={() => handleDelete(selectedQrSession.id)} disabled={isPending}>
+                            <Trash2 className="h-4 w-4" />
+                            Delete flex block
+                          </Button>
+                        </div>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-3">
+                          <div className="rounded-[24px] border border-border bg-muted/35 p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Location</p>
+                            <p className="mt-2 text-base font-semibold text-foreground">{selectedQrSession.location}</p>
+                          </div>
+                          <div className="rounded-[24px] border border-border bg-muted/35 p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Attendance</p>
+                            <p className="mt-2 text-base font-semibold text-foreground">{selectedQrSession.attendeeCount}/{selectedQrSession.capacity} joined</p>
+                          </div>
+                          <div className="rounded-[24px] border border-border bg-muted/35 p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Type</p>
+                            <p className="mt-2 text-base font-semibold text-foreground">{getSessionTypeLabel(selectedQrSession.type)}</p>
+                          </div>
+                        </div>
+                      </section>
+                    </>
+                  ) : null}
+
+                  {attendanceTab === "log" ? (
+                    <section className="surface-card rounded-[32px] p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual attendance</p>
+                          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Mark students manually</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Faculty and admins can manually record present or late attendance for this session.
+                          </p>
+                        </div>
+                        <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+                          {effectiveSelectedIds.length} selected
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                       <div className="rounded-[28px] border border-border bg-muted/35 p-4 sm:p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                           <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -947,6 +1020,100 @@ export function FacultySessionManager({
                       </div>
 
                       <div className="rounded-[28px] border border-border bg-background p-4 sm:p-5">
+                        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Quick roster</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Students already attached to this session appear here for quick updates.
+                        </p>
+
+                        <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+                          {selectedQrSession.attendees.length === 0 ? (
+                            <div className="rounded-[24px] border border-dashed border-border px-4 py-8 text-center">
+                              <p className="text-sm font-medium text-foreground">No one recorded yet</p>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Students will appear here after they join or when you mark them manually.
+                              </p>
+                            </div>
+                          ) : (
+                            selectedQrSession.attendees.map((attendee) => (
+                              <div key={attendee.id} className="rounded-[24px] border border-border bg-muted/30 p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-foreground">{attendee.user.name || "Unnamed student"}</p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                      {attendee.user.email || "No email"}{attendee.user.graduationYear ? ` · Class of ${attendee.user.graduationYear}` : ""}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium", getStatusClass(attendee.status))}>
+                                      {getAttendanceStatusLabel(attendee.status)}
+                                    </span>
+                                    {attendee.checkIn ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                                        <Clock3 className="h-3 w-3" />
+                                        {new Date(attendee.checkIn).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {canUsePresign ? (
+                                    <Button size="sm" variant="secondary" onClick={() => handleBulkAdd(attendee.user.id)} disabled={isPending}>
+                                      <Plus className="h-4 w-4" />
+                                      Add
+                                    </Button>
+                                  ) : null}
+                                  <Button size="sm" onClick={() => handleManualMark("PRESENT", attendee.user.id)} disabled={isPending}>
+                                    Mark present
+                                  </Button>
+                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE", attendee.user.id)} disabled={isPending}>
+                                    Mark late
+                                  </Button>
+                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT", attendee.user.id)} disabled={isPending}>
+                                    Absent
+                                  </Button>
+                                  {isAdmin ? (
+                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT_EXCUSED", attendee.user.id)} disabled={isPending}>
+                                      Absent excused
+                                    </Button>
+                                  ) : null}
+                                  {isAdmin ? (
+                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE_EXCUSED", attendee.user.id)} disabled={isPending}>
+                                      Late excused
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                  ) : null}
+
+                  {attendanceTab === "reports" ? (
+                    <section className="surface-card rounded-[32px] p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Attendance reports</p>
+                          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Roster, missing signup, and absences</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Review the session without the search-and-mark controls cluttering the screen.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" onClick={() => exportAttendance("csv", selectedQrSession.id)}>
+                            <Download className="h-4 w-4" />
+                            Spreadsheet
+                          </Button>
+                          <Button variant="secondary" onClick={() => exportAttendance("pdf", selectedQrSession.id)}>
+                            <Download className="h-4 w-4" />
+                            PDF
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-[28px] border border-border bg-background p-4 sm:p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recorded attendees</p>
@@ -1085,40 +1252,63 @@ export function FacultySessionManager({
                                     ) : null}
                                   </div>
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {canUsePresign ? (
-                                    <Button size="sm" variant="secondary" onClick={() => handleBulkAdd(attendee.user.id)} disabled={isPending}>
-                                      <Plus className="h-4 w-4" />
-                                      Add
-                                    </Button>
-                                  ) : null}
-                                  <Button size="sm" onClick={() => handleManualMark("PRESENT", attendee.user.id)} disabled={isPending}>
-                                    Mark present
-                                  </Button>
-                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE", attendee.user.id)} disabled={isPending}>
-                                    Mark late
-                                  </Button>
-                                  <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT", attendee.user.id)} disabled={isPending}>
-                                    Absent
-                                  </Button>
-                                  {isAdmin ? (
-                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("ABSENT_EXCUSED", attendee.user.id)} disabled={isPending}>
-                                      Absent excused
-                                    </Button>
-                                  ) : null}
-                                  {isAdmin ? (
-                                    <Button variant="secondary" size="sm" onClick={() => handleManualMark("LATE_EXCUSED", attendee.user.id)} disabled={isPending}>
-                                      Late excused
-                                    </Button>
-                                  ) : null}
-                                </div>
                               </div>
                             ))
                           )}
                         </div>
                       </div>
-                    </div>
-                  </section>
+                    </section>
+                  ) : null}
+
+                  {attendanceTab === "sessions" ? (
+                    <section className="surface-card rounded-[32px] p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Session browser</p>
+                          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Switch sessions without clutter</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Pick a session here, then jump back into QR, logging, or reports.
+                          </p>
+                        </div>
+                        <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
+                          {sessions.length} sessions
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+                        {[{ label: "Today", items: todaySessions }, { label: "Upcoming", items: upcomingSessions }, { label: "History", items: historySessions }].map((group) => (
+                          <div key={group.label} className="space-y-3">
+                            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{group.label}</p>
+                            {group.items.length === 0 ? (
+                              <div className="rounded-[24px] border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                                No {group.label.toLowerCase()} sessions.
+                              </div>
+                            ) : (
+                              group.items.map((session) => (
+                                <button
+                                  key={session.id}
+                                  type="button"
+                                  onClick={() => setSelectedQrSessionId(session.id)}
+                                  className={cn(
+                                    "w-full rounded-[24px] border px-4 py-4 text-left transition-colors",
+                                    selectedQrSessionId === session.id
+                                      ? "border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--primary)/0.08)]"
+                                      : "border-border bg-background hover:bg-muted/35"
+                                  )}
+                                >
+                                  <p className="text-sm font-medium text-foreground">{session.title}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {new Date(session.date).toLocaleDateString([], { month: "short", day: "numeric" })} · {session.location}
+                                  </p>
+                                  <p className="mt-1 text-xs text-muted-foreground">{session.attendeeCount}/{session.capacity} joined</p>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
               </motion.div>
             ) : (
