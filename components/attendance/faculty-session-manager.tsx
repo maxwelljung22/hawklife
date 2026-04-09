@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AttendanceSessionType, AttendanceStatus, UserRole } from "@prisma/client";
-import { CalendarDays, CheckCircle2, Clock3, Download, MapPin, Plus, QrCode, Search, Timer, Trash2, Users } from "lucide-react";
+import { BarChart3, CalendarDays, CheckCircle2, Clock3, Download, MapPin, Plus, QrCode, ScanLine, Search, Timer, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -173,6 +173,30 @@ export function FacultySessionManager({
 
     return selectedQrSession.attendees;
   }, [attendanceSummary, reportView, selectedQrSession]);
+
+  const attendanceStatusCounts = useMemo(() => {
+    if (!selectedQrSession) {
+      return {
+        present: 0,
+        late: 0,
+        absent: 0,
+        excused: 0,
+      };
+    }
+
+    return {
+      present: selectedQrSession.attendees.filter((attendee) => attendee.status === "PRESENT").length,
+      late: selectedQrSession.attendees.filter(
+        (attendee) => attendee.status === "LATE" || attendee.status === "LATE_EXCUSED"
+      ).length,
+      absent: selectedQrSession.attendees.filter(
+        (attendee) => attendee.status === "ABSENT" || attendee.status === "ABSENT_EXCUSED"
+      ).length,
+      excused: selectedQrSession.attendees.filter(
+        (attendee) => attendee.status === "ABSENT_EXCUSED" || attendee.status === "LATE_EXCUSED"
+      ).length,
+    };
+  }, [selectedQrSession]);
 
   const handleCreate = () => {
     startTransition(async () => {
@@ -752,30 +776,56 @@ export function FacultySessionManager({
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Attendance workspace</p>
                         <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">{selectedQrSession.title}</h3>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          Split the workflow into smaller views so scanning, logging, reviewing, and switching sessions each have more space.
+                          Everything for this flex block is organized into focused views so scanning, logging, reviewing, and managing never fight for the same space.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {[
-                          { key: "qr", label: "QR Display" },
-                          { key: "log", label: "Log Attendance" },
-                          { key: "reports", label: "Reports" },
-                          { key: "sessions", label: "Sessions" },
+                          { key: "qr", label: "QR Display", icon: QrCode },
+                          { key: "log", label: "Log Attendance", icon: ScanLine },
+                          { key: "reports", label: "Reports", icon: BarChart3 },
+                          { key: "sessions", label: "Sessions", icon: CalendarDays },
                         ].map((tab) => (
                           <button
                             key={tab.key}
                             type="button"
                             onClick={() => setAttendanceTab(tab.key as "qr" | "log" | "reports" | "sessions")}
                             className={cn(
-                              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
                               attendanceTab === tab.key
                                 ? "border-[hsl(var(--primary)/0.3)] bg-[hsl(var(--primary)/0.08)] text-foreground"
                                 : "border-border bg-background text-muted-foreground hover:text-foreground"
                             )}
                           >
+                            <tab.icon className="h-4 w-4" />
                             {tab.label}
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="overflow-hidden rounded-[26px] border border-[hsl(var(--primary)/0.18)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.16),transparent_75%)] p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Roster progress</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                          {selectedQrSession.attendeeCount}/{selectedQrSession.capacity}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">Students attached to this flex block</p>
+                      </div>
+                      <div className="rounded-[26px] border border-emerald-500/20 bg-emerald-500/5 p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">Present</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">{attendanceStatusCounts.present}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Checked in and on time</p>
+                      </div>
+                      <div className="rounded-[26px] border border-amber-500/20 bg-amber-500/5 p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Late</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">{attendanceStatusCounts.late}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Late arrivals and late excused</p>
+                      </div>
+                      <div className="rounded-[26px] border border-rose-500/20 bg-rose-500/5 p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">Absences</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">{attendanceStatusCounts.absent}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{attendanceStatusCounts.excused} excused so far</p>
                       </div>
                     </div>
                   </section>
@@ -843,7 +893,7 @@ export function FacultySessionManager({
                           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual attendance</p>
                           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Mark students manually</h3>
                           <p className="mt-2 text-sm text-muted-foreground">
-                            Faculty and admins can manually record present or late attendance for this session.
+                            Search, bulk-select, save custom groups, and mark statuses without losing track of the live roster.
                           </p>
                         </div>
                         <div className="rounded-full border border-border bg-muted/70 px-3 py-1.5 text-[12px] font-medium text-muted-foreground">
@@ -851,12 +901,39 @@ export function FacultySessionManager({
                         </div>
                       </div>
 
+                      <div className="mt-5 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
+                        <div className="rounded-[26px] border border-[hsl(var(--primary)/0.18)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),transparent_75%)] p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Selection flow</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">1. Find students. 2. Select one or many. 3. Run the attendance action once.</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Bulk actions and saved groups are built in, so large rosters stay fast and simple.
+                          </p>
+                        </div>
+                        <div className="rounded-[26px] border border-border bg-muted/30 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Ready to apply</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="inline-flex rounded-full bg-background px-3 py-1.5 text-[12px] font-medium text-foreground">
+                              {effectiveSelectedIds.length} selected
+                            </span>
+                            <span className="inline-flex rounded-full bg-background px-3 py-1.5 text-[12px] font-medium text-foreground">
+                              {savedGroups.length} saved groups
+                            </span>
+                            <span className="inline-flex rounded-full bg-background px-3 py-1.5 text-[12px] font-medium text-foreground">
+                              {availableStudents.length} visible students
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                       <div className="rounded-[28px] border border-border bg-muted/35 p-4 sm:p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                          <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Search student
-                          </label>
+                          <div>
+                            <label className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                              Search and build a roster
+                            </label>
+                            <p className="mt-1 text-xs text-muted-foreground">Use class filters, quick bulk picks, or saved groups.</p>
+                          </div>
                           <select
                             value={classFilter}
                             onChange={(event) => setClassFilter(event.target.value)}
@@ -1027,10 +1104,17 @@ export function FacultySessionManager({
                       </div>
 
                       <div className="rounded-[28px] border border-border bg-background p-4 sm:p-5">
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Quick roster</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Students already attached to this session appear here for quick updates.
-                        </p>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                          <div>
+                            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Live roster</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Students already attached to this session appear here for one-tap updates.
+                            </p>
+                          </div>
+                          <div className="rounded-full border border-border bg-muted/60 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                            {selectedQrSession.attendees.length} recorded
+                          </div>
+                        </div>
 
                         <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
                           {selectedQrSession.attendees.length === 0 ? (
@@ -1128,6 +1212,29 @@ export function FacultySessionManager({
                           </div>
                           <div className="rounded-full border border-border bg-muted/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
                             {missingFlexSignupStudents.length} not signed up
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-[22px] border border-[hsl(var(--primary)/0.18)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),transparent_75%)] px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Recorded roster</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{selectedQrSession.attendees.length}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">Students in this session roster</p>
+                          </div>
+                          <div className="rounded-[22px] border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Missing signup</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{missingFlexSignupStudents.length}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">Students without a flex choice that day</p>
+                          </div>
+                          <div className="rounded-[22px] border border-rose-500/20 bg-rose-500/5 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-700 dark:text-rose-300">Absent</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{attendanceSummary?.absent.length ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">Students marked absent in this session</p>
+                          </div>
+                          <div className="rounded-[22px] border border-sky-500/20 bg-sky-500/5 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">Excused</p>
+                            <p className="mt-2 text-xl font-semibold text-foreground">{attendanceStatusCounts.excused}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">Absent or late with an excuse</p>
                           </div>
                         </div>
 
@@ -1430,11 +1537,7 @@ export function FacultySessionManager({
                   >
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedQrSessionId(session.id);
-                        setReportView("recorded");
-                        setActiveTab("attendance");
-                      }}
+                      onClick={() => openSessionManager(session.id, "reports")}
                       className="flex flex-col items-start gap-3 transition-colors hover:bg-muted/0 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
@@ -1446,6 +1549,17 @@ export function FacultySessionManager({
                       <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
                     </button>
                     <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => openSessionManager(session.id, "reports")}>
+                        Manage
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => exportAttendance("csv", session.id)}>
+                        <Download className="h-4 w-4" />
+                        Spreadsheet
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => exportAttendance("pdf", session.id)}>
+                        <Download className="h-4 w-4" />
+                        PDF
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(session.id)} disabled={isPending}>
                         <Trash2 className="h-4 w-4" />
                         Delete
