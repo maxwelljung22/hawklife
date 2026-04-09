@@ -157,6 +157,13 @@ const SERVICE_HOUR_REQUIREMENTS = [
   "All students are required to have 80 hours completed at the time of graduation, with 75 hours for the Class of 2025 and Class of 2026.",
 ];
 
+const GLASS_PANEL =
+  "border border-[rgba(122,87,31,0.18)] bg-[linear-gradient(145deg,rgba(255,251,245,0.92),rgba(255,244,231,0.78))] shadow-[0_18px_50px_rgba(36,24,18,0.08)] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(22,18,33,0.94),rgba(14,18,34,0.88))] dark:shadow-[0_24px_60px_rgba(0,0,0,0.28)]";
+const INSET_PANEL =
+  "border border-[rgba(122,87,31,0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.78),rgba(248,236,220,0.68))] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(31,24,43,0.9),rgba(17,21,37,0.86))]";
+const SOFT_BADGE =
+  "border border-[rgba(255,255,255,0.45)] bg-[rgba(255,250,243,0.78)] text-slate-900 dark:border-white/10 dark:bg-[rgba(24,28,45,0.88)] dark:text-white";
+
 function formatDateRange(startDate: string, endDate: string) {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -244,16 +251,25 @@ export function MissionMinistryClient({
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <section className="relative overflow-hidden rounded-[38px] border border-border bg-[linear-gradient(135deg,rgba(139,26,26,0.16),rgba(217,119,6,0.16),rgba(14,165,233,0.14),rgba(20,184,166,0.1))] p-6 shadow-[0_26px_80px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.1),transparent_26%)]" />
+      <section className="relative overflow-hidden rounded-[38px] border border-[rgba(122,87,31,0.2)] bg-[linear-gradient(135deg,rgba(123,31,43,0.92),rgba(142,83,24,0.88),rgba(34,57,102,0.86))] p-6 shadow-[0_30px_90px_rgba(25,17,12,0.18)] sm:p-8 lg:p-10 dark:border-[rgba(240,214,158,0.12)] dark:bg-[linear-gradient(135deg,rgba(48,16,28,0.98),rgba(79,43,17,0.96),rgba(17,27,58,0.96))]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,243,214,0.34),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.12),transparent_24%),linear-gradient(90deg,transparent_0%,rgba(255,220,160,0.08)_48%,transparent_100%)]" />
+        <div className="absolute inset-y-0 left-[11%] w-px bg-[rgba(255,224,173,0.28)]" />
+        <div className="absolute inset-y-0 right-[14%] w-px bg-[rgba(255,224,173,0.18)]" />
         <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">School Life</p>
-            <h1 className="mt-3 text-balance text-[clamp(2.5rem,7vw,4.8rem)] font-semibold tracking-[-0.07em] text-foreground">
+            <div className="flex flex-wrap gap-2">
+              {["Faith", "Service", "Reflection"].map((item) => (
+                <span key={item} className={cn("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]", SOFT_BADGE)}>
+                  {item}
+                </span>
+              ))}
+            </div>
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/72">St. Joseph&apos;s Prep</p>
+            <h1 className="mt-3 text-balance text-[clamp(2.5rem,7vw,4.8rem)] font-semibold tracking-[-0.07em] text-white">
               Mission & Ministry
             </h1>
-            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-              A brighter home for service opportunities, Kairos updates, and retreat sign-ups across the Prep.
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-white/82">
+              A warmer, more sacred home for service opportunities, Kairos updates, and retreat sign-ups across the Prep.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {PAGE_TABS.map((item) => (
@@ -263,8 +279,8 @@ export function MissionMinistryClient({
                   className={cn(
                     "rounded-full border px-4 py-2 text-sm font-semibold transition-all",
                     tab === item.id
-                      ? "border-transparent bg-white text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.1)]"
-                      : "border-white/40 bg-white/40 text-muted-foreground hover:bg-white/60 hover:text-foreground"
+                      ? "border-transparent bg-[rgba(255,248,236,0.95)] text-slate-950 shadow-[0_10px_30px_rgba(15,23,42,0.18)] dark:bg-[rgba(250,226,176,0.92)]"
+                      : "border-white/25 bg-white/10 text-white/78 hover:bg-white/18 hover:text-white"
                   )}
                 >
                   {item.label}
@@ -274,12 +290,12 @@ export function MissionMinistryClient({
             <div className="mt-5 flex flex-wrap gap-2">
               {managerNames.length > 0 ? (
                 managerNames.map((name) => (
-                  <span key={name} className="rounded-full border border-border bg-white/75 px-3 py-1.5 text-[12px] font-medium text-foreground">
+                  <span key={name} className={cn("rounded-full px-3 py-1.5 text-[12px] font-medium", SOFT_BADGE)}>
                     {name}
                   </span>
                 ))
               ) : (
-                <span className="rounded-full border border-border bg-white/75 px-3 py-1.5 text-[12px] font-medium text-foreground">
+                <span className={cn("rounded-full px-3 py-1.5 text-[12px] font-medium", SOFT_BADGE)}>
                   Ministry team updates coming soon
                 </span>
               )}
@@ -292,9 +308,9 @@ export function MissionMinistryClient({
               { label: "Open sign-ups", value: programs.filter((program) => program.registrationOpen).length },
               { label: "Total programs", value: programs.length },
             ].map((item) => (
-              <div key={item.label} className="rounded-[24px] border border-border bg-white/75 px-4 py-4 backdrop-blur">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{item.label}</p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">{item.value}</p>
+              <div key={item.label} className="rounded-[24px] border border-white/12 bg-[rgba(16,21,38,0.28)] px-4 py-4 text-white backdrop-blur">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/64">{item.label}</p>
+                <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">{item.value}</p>
               </div>
             ))}
           </div>
@@ -333,19 +349,19 @@ export function MissionMinistryClient({
             body: "Let students see who leads Mission & Ministry and where to go when they need the next step.",
           },
         ].map((item) => (
-          <div key={item.title} className="surface-card rounded-[28px] p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(139,26,26,0.08)] text-[hsl(var(--primary))]">
+          <div key={item.title} className={cn("rounded-[28px] p-5", GLASS_PANEL)}>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(145,41,54,0.18),rgba(209,154,76,0.24))] text-[hsl(var(--primary))] dark:text-[#f6d08a]">
               <item.icon className="h-5 w-5" />
             </div>
             <h2 className="mt-4 text-xl font-semibold tracking-[-0.05em] text-foreground">{item.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
+            <p className="mt-2 text-sm leading-6 text-foreground/72 dark:text-white/70">{item.body}</p>
           </div>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="surface-card rounded-[32px] p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Featured right now</p>
+        <section className={cn("rounded-[32px] p-6", GLASS_PANEL)}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">Featured right now</p>
           <div className="mt-5 grid gap-4">
             {(featuredPrograms.length > 0 ? featuredPrograms : serviceEvents.slice(0, 2).map((event) => ({
               id: event.id,
@@ -382,28 +398,28 @@ export function MissionMinistryClient({
                         <div className="min-w-0">
                           <div className="flex flex-wrap gap-2">
                             {program.isFeatured ? (
-                              <span className="rounded-full border border-white/30 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
+                              <span className={cn("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]", SOFT_BADGE)}>
                                 Featured
                               </span>
                             ) : null}
-                            <span className="rounded-full border border-white/30 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
+                            <span className={cn("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]", SOFT_BADGE)}>
                               {TYPE_META[program.type].label}
                             </span>
                           </div>
                           <h3 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-foreground">{program.title}</h3>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{program.summary}</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground/72 dark:text-white/72">{program.summary}</p>
                         </div>
-                        <div className="rounded-[22px] border border-white/40 bg-white/70 px-4 py-3 text-sm text-foreground shadow-sm">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Sign-ups</p>
+                        <div className={cn("rounded-[22px] px-4 py-3 text-sm text-foreground shadow-sm", INSET_PANEL)}>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/54">Sign-ups</p>
                           <p className="mt-1 text-xl font-semibold">{program.signupCount}{program.capacity ? `/${program.capacity}` : ""}</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-4 p-5 sm:p-6">
-                      <p className="text-sm leading-7 text-muted-foreground">{program.description}</p>
+                      <p className="text-sm leading-7 text-foreground/74 dark:text-white/70">{program.description}</p>
 
-                      <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                      <div className="grid gap-3 text-sm text-foreground/70 dark:text-white/68 sm:grid-cols-2">
                         <div className="flex items-center gap-2">
                           <CalendarDays className="h-4 w-4" />
                           {formatDateRange(program.startDate, program.endDate)}
@@ -414,16 +430,16 @@ export function MissionMinistryClient({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
-                        <span className="rounded-full border border-border bg-muted px-3 py-1.5">
+                      <div className="flex flex-wrap gap-2 text-[12px] text-foreground/70 dark:text-white/68">
+                        <span className={cn("rounded-full px-3 py-1.5", INSET_PANEL)}>
                           {program.registrationOpen ? "Registration open" : "Registration closed"}
                         </span>
                         {program.registrationDeadline ? (
-                          <span className="rounded-full border border-border bg-muted px-3 py-1.5">
+                          <span className={cn("rounded-full px-3 py-1.5", INSET_PANEL)}>
                             Deadline {new Date(program.registrationDeadline).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         ) : null}
-                        <span className="rounded-full border border-border bg-muted px-3 py-1.5">
+                        <span className={cn("rounded-full px-3 py-1.5", INSET_PANEL)}>
                           Posted by {program.createdByName || "Mission & Ministry"}
                         </span>
                       </div>
@@ -454,11 +470,11 @@ export function MissionMinistryClient({
                       </div>
 
                       {canManage && program.signups.length > 0 ? (
-                        <div className="rounded-[24px] border border-border bg-muted/35 p-4">
-                          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Student roster</p>
+                        <div className={cn("rounded-[24px] p-4", INSET_PANEL)}>
+                          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/52">Student roster</p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {program.signups.map((signup) => (
-                              <span key={signup.id} className="rounded-full border border-border bg-background px-3 py-1.5 text-[12px] text-foreground">
+                              <span key={signup.id} className={cn("rounded-full px-3 py-1.5 text-[12px]", INSET_PANEL)}>
                                 {signup.name || signup.email || "Student"}{signup.graduationYear ? ` · ${signup.graduationYear}` : ""}
                               </span>
                             ))}
@@ -472,8 +488,8 @@ export function MissionMinistryClient({
           </div>
         </section>
 
-        <section className="surface-card rounded-[32px] p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">What students can do here</p>
+        <section className={cn("rounded-[32px] p-6", GLASS_PANEL)}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">What students can do here</p>
           <div className="mt-4 space-y-4">
             {[
               "Browse live service opportunities without leaving HawkLife.",
@@ -481,7 +497,7 @@ export function MissionMinistryClient({
               "See upcoming retreats with cleaner details and registration status.",
               "Open the full Mission & Ministry signup tools from the faculty dashboard if you manage the department.",
             ].map((item) => (
-              <div key={item} className="rounded-[22px] border border-border bg-muted/35 px-4 py-3 text-sm leading-7 text-muted-foreground">
+              <div key={item} className={cn("rounded-[22px] px-4 py-3 text-sm leading-7 text-foreground/74 dark:text-white/72", INSET_PANEL)}>
                 {item}
               </div>
             ))}
@@ -493,12 +509,12 @@ export function MissionMinistryClient({
 
       {tab === "service" ? (
         <div className="space-y-4">
-          <section className="surface-card overflow-hidden rounded-[34px] p-6 sm:p-7">
+          <section className={cn("overflow-hidden rounded-[34px] p-6 sm:p-7", GLASS_PANEL)}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Live Service Calendar</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">Live Service Calendar</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-foreground">Upcoming service opportunities pulled from SignUpGenius</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground/72 dark:text-white/72">
                   A brighter, roomier view of what is coming up next. The cards auto-glide on larger screens and still scroll manually on phones.
                 </p>
               </div>
@@ -522,21 +538,21 @@ export function MissionMinistryClient({
                   {[...serviceEvents, ...serviceEvents].map((event, index) => (
                     <article
                       key={`${event.id}-${index}`}
-                      className="w-[min(84vw,360px)] rounded-[30px] border border-border bg-[linear-gradient(145deg,rgba(139,26,26,0.14),rgba(217,119,6,0.14),rgba(14,165,233,0.12))] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+                      className="w-[min(84vw,360px)] rounded-[30px] border border-[rgba(122,87,31,0.16)] bg-[linear-gradient(145deg,rgba(255,245,229,0.95),rgba(249,227,192,0.72),rgba(218,229,255,0.66))] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(43,23,31,0.96),rgba(59,37,21,0.92),rgba(20,30,55,0.92))]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/54">
                             {event.isFull ? "Currently full" : "Open opportunity"}
                           </p>
                           <h3 className="mt-2 text-xl font-semibold tracking-[-0.05em] text-foreground">{event.title}</h3>
                         </div>
-                        <div className="rounded-full border border-white/50 bg-white/80 px-3 py-1 text-[11px] font-semibold text-foreground">
+                        <div className={cn("rounded-full px-3 py-1 text-[11px] font-semibold", SOFT_BADGE)}>
                           {event.seatsTaken}/{event.seatsTotal || "?"}
                         </div>
                       </div>
 
-                      <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                      <div className="mt-4 space-y-2 text-sm text-foreground/72 dark:text-white/72">
                         <div className="flex items-start gap-2">
                           <CalendarDays className="mt-0.5 h-4 w-4 shrink-0" />
                           <span>{formatEventCardDate(event.startDate, event.endDate)}</span>
@@ -547,13 +563,13 @@ export function MissionMinistryClient({
                         </div>
                       </div>
 
-                      <p className="mt-4 min-h-[96px] text-sm leading-6 text-muted-foreground">{event.description}</p>
+                      <p className="mt-4 min-h-[96px] text-sm leading-6 text-foreground/74 dark:text-white/74">{event.description}</p>
 
                       <Link
                         href={event.signupUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-5 inline-flex items-center justify-center rounded-2xl border border-border bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-white"
+                        className="mt-5 inline-flex items-center justify-center rounded-2xl border border-[rgba(122,87,31,0.16)] bg-[rgba(255,250,243,0.82)] px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-white dark:border-white/10 dark:bg-[rgba(22,28,45,0.9)] dark:text-white dark:hover:bg-[rgba(30,36,58,0.96)]"
                       >
                         Sign up in SignUpGenius
                       </Link>
@@ -592,25 +608,25 @@ export function MissionMinistryClient({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, delay: index * 0.04 }}
-                    className="rounded-[24px] border border-border bg-[linear-gradient(145deg,rgba(255,255,255,0.72),rgba(255,255,255,0.44))] p-4"
+                    className={cn("rounded-[24px] p-4", INSET_PANEL)}
                   >
                     <h4 className="text-[1.05rem] font-semibold tracking-[-0.04em] text-foreground">{item.title}</h4>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.body}</p>
+                    <p className="mt-2 text-sm leading-7 text-foreground/74 dark:text-white/72">{item.body}</p>
                   </motion.div>
                 ))}
               </div>
             </section>
 
             <div className="space-y-4">
-              <section className="surface-card rounded-[32px] p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pre-Approved Sites</p>
+              <section className={cn("rounded-[32px] p-6", GLASS_PANEL)}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">Pre-Approved Sites</p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">A strong starting point for service</h3>
-                <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                <p className="mt-2 text-sm leading-7 text-foreground/72 dark:text-white/72">
                   Hours at these sites are pre-approved for service hours. Please contact Ms. Longto for more information about any of these locations. This list is not exhaustive, but it is a strong place to begin.
                 </p>
                 <div className="mt-5 grid gap-4">
                   {PRE_APPROVED_SITES.map((group) => (
-                    <div key={group.region} className="rounded-[24px] border border-border bg-background p-4">
+                    <div key={group.region} className={cn("rounded-[24px] p-4", INSET_PANEL)}>
                       <p className="text-sm font-semibold text-foreground">{group.region}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {group.sites.map((site) => (
@@ -624,23 +640,23 @@ export function MissionMinistryClient({
                 </div>
               </section>
 
-              <section className="surface-card rounded-[32px] p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Service Hour Guidelines</p>
+              <section className={cn("rounded-[32px] p-6", GLASS_PANEL)}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">Service Hour Guidelines</p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground">Required, Ignatian, and tracked clearly</h3>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                <p className="mt-3 text-sm leading-7 text-foreground/72 dark:text-white/72">
                   The Mission & Ministry Ignatian Service Program is rooted in the belief of St. Ignatius that love is shown in deeds rather than in words. Students are invited to become men for and with others by stepping beyond their usual experience and serving people who are materially poor, marginalized, disadvantaged, or living with disability.
                 </p>
-                <div className="mt-4 rounded-[24px] border border-border bg-muted/35 p-4">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Service Hour Requirement</p>
+                <div className={cn("mt-4 rounded-[24px] p-4", INSET_PANEL)}>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/52">Service Hour Requirement</p>
                   <div className="mt-3 space-y-2">
                     {SERVICE_HOUR_REQUIREMENTS.map((item) => (
                       <p key={item} className="text-sm text-foreground">{item}</p>
                     ))}
                   </div>
                 </div>
-                <div className="mt-4 rounded-[24px] border border-border bg-background p-4">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">MobileServe</p>
-                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                <div className={cn("mt-4 rounded-[24px] p-4", INSET_PANEL)}>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/52">MobileServe</p>
+                  <p className="mt-2 text-sm leading-7 text-foreground/72 dark:text-white/72">
                     Service hours are tracked by the Office of Mission & Ministry through MobileServe. Students should download the app through the App Store or Google Play Store, or use the web version at{" "}
                     <a
                       href="https://mobileserve.com/"
@@ -686,17 +702,17 @@ export function MissionMinistryClient({
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <h3 className="text-2xl font-semibold tracking-[-0.05em] text-foreground">{program.title}</h3>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{program.summary}</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground/72 dark:text-white/72">{program.summary}</p>
                         </div>
-                        <div className="rounded-[22px] border border-white/40 bg-white/70 px-4 py-3 text-sm text-foreground shadow-sm">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Sign-ups</p>
+                        <div className={cn("rounded-[22px] px-4 py-3 text-sm text-foreground shadow-sm", INSET_PANEL)}>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/54">Sign-ups</p>
                           <p className="mt-1 text-xl font-semibold">{program.signupCount}{program.capacity ? `/${program.capacity}` : ""}</p>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4 p-5 sm:p-6">
-                      <p className="text-sm leading-7 text-muted-foreground">{program.description}</p>
-                      <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                      <p className="text-sm leading-7 text-foreground/72 dark:text-white/72">{program.description}</p>
+                      <div className="grid gap-3 text-sm text-foreground/70 dark:text-white/68 sm:grid-cols-2">
                         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{formatDateRange(program.startDate, program.endDate)}</div>
                         <div className="flex items-center gap-2"><MapPin className="h-4 w-4" />{program.location}</div>
                       </div>
@@ -739,17 +755,17 @@ export function MissionMinistryClient({
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <h3 className="text-2xl font-semibold tracking-[-0.05em] text-foreground">{program.title}</h3>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{program.summary}</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground/72 dark:text-white/72">{program.summary}</p>
                         </div>
-                        <div className="rounded-[22px] border border-white/40 bg-white/70 px-4 py-3 text-sm text-foreground shadow-sm">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Sign-ups</p>
+                        <div className={cn("rounded-[22px] px-4 py-3 text-sm text-foreground shadow-sm", INSET_PANEL)}>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/52 dark:text-white/54">Sign-ups</p>
                           <p className="mt-1 text-xl font-semibold">{program.signupCount}{program.capacity ? `/${program.capacity}` : ""}</p>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4 p-5 sm:p-6">
-                      <p className="text-sm leading-7 text-muted-foreground">{program.description}</p>
-                      <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                      <p className="text-sm leading-7 text-foreground/72 dark:text-white/72">{program.description}</p>
+                      <div className="grid gap-3 text-sm text-foreground/70 dark:text-white/68 sm:grid-cols-2">
                         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{formatDateRange(program.startDate, program.endDate)}</div>
                         <div className="flex items-center gap-2"><MapPin className="h-4 w-4" />{program.location}</div>
                       </div>
