@@ -452,6 +452,13 @@ export function FacultySessionManager({
     window.location.href = `/api/flex/export?sessionId=${targetSessionId}&format=${format}`;
   };
 
+  const openSessionManager = (sessionId: string, view: "qr" | "log" | "reports" = "reports") => {
+    setSelectedQrSessionId(sessionId);
+    setReportView("recorded");
+    setActiveTab("attendance");
+    setAttendanceTab(view);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -1285,23 +1292,44 @@ export function FacultySessionManager({
                               </div>
                             ) : (
                               group.items.map((session) => (
-                                <button
+                                <div
                                   key={session.id}
-                                  type="button"
-                                  onClick={() => setSelectedQrSessionId(session.id)}
                                   className={cn(
-                                    "w-full rounded-[24px] border px-4 py-4 text-left transition-colors",
+                                    "rounded-[24px] border px-4 py-4 transition-colors",
                                     selectedQrSessionId === session.id
                                       ? "border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--primary)/0.08)]"
-                                      : "border-border bg-background hover:bg-muted/35"
+                                      : "border-border bg-background"
                                   )}
                                 >
-                                  <p className="text-sm font-medium text-foreground">{session.title}</p>
-                                  <p className="mt-1 text-xs text-muted-foreground">
-                                    {new Date(session.date).toLocaleDateString([], { month: "short", day: "numeric" })} · {session.location}
-                                  </p>
-                                  <p className="mt-1 text-xs text-muted-foreground">{session.attendeeCount}/{session.capacity} joined</p>
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openSessionManager(session.id, "reports")}
+                                    className="w-full text-left"
+                                  >
+                                    <p className="text-sm font-medium text-foreground">{session.title}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {new Date(session.date).toLocaleDateString([], { month: "short", day: "numeric" })} · {session.location}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">{session.attendeeCount}/{session.capacity} joined</p>
+                                  </button>
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    <Button variant="secondary" size="sm" onClick={() => openSessionManager(session.id, "reports")}>
+                                      Manage
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => exportAttendance("csv", session.id)}>
+                                      <Download className="h-4 w-4" />
+                                      Spreadsheet
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => exportAttendance("pdf", session.id)}>
+                                      <Download className="h-4 w-4" />
+                                      PDF
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(session.id)} disabled={isPending}>
+                                      <Trash2 className="h-4 w-4" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </div>
                               ))
                             )}
                           </div>
@@ -1345,11 +1373,7 @@ export function FacultySessionManager({
                   >
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedQrSessionId(session.id);
-                        setReportView("recorded");
-                        setActiveTab("attendance");
-                      }}
+                      onClick={() => openSessionManager(session.id, "reports")}
                       className="flex flex-col items-start gap-3 transition-colors hover:bg-muted/0 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
@@ -1361,6 +1385,17 @@ export function FacultySessionManager({
                       <span className="text-[11px] font-medium text-muted-foreground">{getSessionTypeLabel(session.type)}</span>
                     </button>
                     <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => openSessionManager(session.id, "reports")}>
+                        Manage
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => exportAttendance("csv", session.id)}>
+                        <Download className="h-4 w-4" />
+                        Spreadsheet
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => exportAttendance("pdf", session.id)}>
+                        <Download className="h-4 w-4" />
+                        PDF
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(session.id)} disabled={isPending}>
                         <Trash2 className="h-4 w-4" />
                         Delete
