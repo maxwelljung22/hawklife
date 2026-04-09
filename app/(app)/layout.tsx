@@ -5,6 +5,9 @@ import { FirstRunIntroGate } from "@/components/intro/first-run-intro-gate";
 import { AppShell } from "@/components/layout/app-shell";
 import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 import { canParticipateInFlex } from "@/lib/flex-attendance";
+import { remember } from "@/lib/server-cache";
+
+const APP_SHELL_CACHE_TTL_MS = 10_000;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -23,30 +26,42 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let unreadNotifications = 0;
 
   try {
-    [userState, notifications, unreadNotifications] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { hasSeenIntro: true, graduationYear: true },
-      }),
-      prisma.notification.findMany({
-        where: { userId: session.user.id },
-        orderBy: { createdAt: "desc" },
-        take: 8,
-        select: {
-          id: true,
-          title: true,
-          body: true,
-          type: true,
-          refId: true,
-          refType: true,
-          isRead: true,
-          createdAt: true,
-        },
-      }),
-      prisma.notification.count({
-        where: { userId: session.user.id, isRead: false },
-      }),
-    ]);
+    ({ userState, notifications, unreadNotifications } = await remember(
+      `app-shell:${session.user.id}`,
+      APP_SHELL_CACHE_TTL_MS,
+      async () => {
+        const [resolvedUserState, resolvedNotifications, resolvedUnreadNotifications] = await Promise.all([
+          prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { hasSeenIntro: true, graduationYear: true },
+          }),
+          prisma.notification.findMany({
+            where: { userId: session.user.id },
+            orderBy: { createdAt: "desc" },
+            take: 8,
+            select: {
+              id: true,
+              title: true,
+              body: true,
+              type: true,
+              refId: true,
+              refType: true,
+              isRead: true,
+              createdAt: true,
+            },
+          }),
+          prisma.notification.count({
+            where: { userId: session.user.id, isRead: false },
+          }),
+        ]);
+
+        return {
+          userState: resolvedUserState,
+          notifications: resolvedNotifications,
+          unreadNotifications: resolvedUnreadNotifications,
+        };
+      }
+    ));
   } catch (error) {
     if (!isPrismaMissingColumnError(error)) {
       throw error;

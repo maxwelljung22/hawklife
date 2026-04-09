@@ -199,6 +199,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([role, graduationYear])
 }
 
 // ─── CLUB ─────────────────────────────────────────────────────────────────────
@@ -250,6 +251,7 @@ model Club {
   @@index([slug])
   @@index([category])
   @@index([isActive])
+  @@index([isActive, category, commitment])
 }
 
 // ─── MEMBERSHIP ───────────────────────────────────────────────────────────────
@@ -270,6 +272,8 @@ model Membership {
   @@index([userId])
   @@index([clubId])
   @@index([status])
+  @@index([userId, status])
+  @@index([clubId, status, role])
 }
 
 // ─── POST ─────────────────────────────────────────────────────────────────────
@@ -290,6 +294,8 @@ model Post {
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([clubId, createdAt])
+  @@index([createdAt])
+  @@index([isPinned, createdAt])
 }
 
 // ─── EVENT ────────────────────────────────────────────────────────────────────
@@ -314,6 +320,7 @@ model Event {
 
   @@index([clubId, startTime])
   @@index([startTime])
+  @@index([isPublic, startTime])
 }
 
 // ─── RESOURCE ─────────────────────────────────────────────────────────────────
@@ -336,6 +343,7 @@ model Resource {
   uploader User @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([clubId])
+  @@index([clubId, category, dueAt])
 }
 
 model WorkspacePost {
@@ -397,6 +405,7 @@ model WorkspaceAssignment {
   submissions WorkspaceAssignmentSubmission[]
 
   @@index([clubId, dueAt])
+  @@index([dueAt])
 }
 
 model WorkspaceAssignmentSubmission {
@@ -435,6 +444,8 @@ model WorkspaceTask {
 
   @@index([clubId, status])
   @@index([assigneeId, status])
+  @@index([clubId, status, dueAt])
+  @@index([assigneeId, status, dueAt])
 }
 
 // ─── APPLICATION FORM ─────────────────────────────────────────────────────────
@@ -451,6 +462,8 @@ model AppForm {
 
   // ← This was the missing opposite relation field
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([isOpen, deadline])
 }
 
 // ─── APPLICATION ──────────────────────────────────────────────────────────────
@@ -472,6 +485,8 @@ model Application {
 
   @@unique([clubId, applicantId])
   @@index([clubId, status])
+  @@index([applicantId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ─── CHARTER APPLICATION ─────────────────────────────────────────────────────
@@ -570,6 +585,8 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([userId, isRead, createdAt])
 }
 
 // ─── CHANGELOG ────────────────────────────────────────────────────────────────
@@ -614,6 +631,8 @@ model AttendanceSession {
   @@index([date, type])
   @@index([clubId, date])
   @@index([createdById, date])
+  @@index([date, isOpen, startTime])
+  @@index([clubId, date, isOpen])
 }
 
 model AttendanceRecord {
@@ -630,6 +649,8 @@ model AttendanceRecord {
 
   @@unique([sessionId, userId])
   @@index([userId, joinedAt])
+  @@index([sessionId, status])
+  @@index([userId, sessionId])
 }
 
 model FlexSelectionGroup {
@@ -671,6 +692,7 @@ model MinistryProgram {
   @@index([type, startDate])
   @@index([registrationOpen, startDate])
   @@index([createdById, createdAt])
+  @@index([isFeatured, startDate])
 }
 
 model MinistrySignup {
@@ -684,6 +706,7 @@ model MinistrySignup {
 
   @@unique([programId, userId])
   @@index([userId, createdAt])
+  @@index([programId, createdAt])
 }
 
 // ─── NHS CACHE ────────────────────────────────────────────────────────────────

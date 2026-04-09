@@ -1,6 +1,9 @@
+import { remember } from "@/lib/server-cache";
+
 const SIGNUP_GENIUS_API_URL = "https://www.signupgenius.com/sugboxapi.cfm";
 const SERVICE_OPPORTUNITY_URL_ID = "10C0F44AAA62AA1FFC07-service";
 const SIGNUP_GENIUS_TIMEOUT_MS = 8_000;
+const SERVICE_EVENT_CACHE_TTL_MS = 5 * 60_000;
 
 type SignupGeniusEnvelope<T> = {
   MESSAGE?: string[];
@@ -108,71 +111,73 @@ async function postSignupGenius<T>(go: string, body: Record<string, unknown>) {
 }
 
 export async function fetchServiceOpportunityEvents() {
-  try {
-    const base = await postSignupGenius<SignupGeniusBaseData>("s.getSignupInfo", {
-      urlid: SERVICE_OPPORTUNITY_URL_ID,
-      includeAdvanceDetails: true,
-    });
+  return remember("signup-genius:service-events", SERVICE_EVENT_CACHE_TTL_MS, async () => {
+    try {
+      const base = await postSignupGenius<SignupGeniusBaseData>("s.getSignupInfo", {
+        urlid: SERVICE_OPPORTUNITY_URL_ID,
+        includeAdvanceDetails: true,
+      });
 
-    const initialMonthKey = buildMonthKey(new Date());
-    const firstCalendar = await postSignupGenius<SignupGeniusCalendarData>("s.getSignupInfo", {
-      urlid: base.urlid,
-      listid: base.id,
-      includeAdvanceDetails: true,
-      forSignUpView: true,
-      view: "calendar",
-      calendarMonth: initialMonthKey,
-    });
+      const initialMonthKey = buildMonthKey(new Date());
+      const firstCalendar = await postSignupGenius<SignupGeniusCalendarData>("s.getSignupInfo", {
+        urlid: base.urlid,
+        listid: base.id,
+        includeAdvanceDetails: true,
+        forSignUpView: true,
+        view: "calendar",
+        calendarMonth: initialMonthKey,
+      });
 
-    const calendarView = firstCalendar.slotMetadata?.calendarView;
-    const rangeStart = parseMonthBoundary(calendarView?.firstMonthWithSlots, new Date());
-    const rangeEnd = parseMonthBoundary(calendarView?.lastMonthWithSlots, rangeStart);
-    const monthKeys = Array.from(new Set([initialMonthKey, ...enumerateMonthKeys(rangeStart, rangeEnd)]));
+      const calendarView = firstCalendar.slotMetadata?.calendarView;
+      const rangeStart = parseMonthBoundary(calendarView?.firstMonthWithSlots, new Date());
+      const rangeEnd = parseMonthBoundary(calendarView?.lastMonthWithSlots, rangeStart);
+      const monthKeys = Array.from(new Set([initialMonthKey, ...enumerateMonthKeys(rangeStart, rangeEnd)]));
 
-    const calendars = await Promise.all(
-      monthKeys.map((calendarMonth) =>
-        postSignupGenius<SignupGeniusCalendarData>("s.getSignupInfo", {
-          urlid: base.urlid,
-          listid: base.id,
-          includeAdvanceDetails: true,
-          forSignUpView: true,
-          view: "calendar",
-          calendarMonth,
-        }).catch(() => null)
-      )
-    );
+      const calendars = await Promise.all(
+        monthKeys.map((calendarMonth) =>
+          postSignupGenius<SignupGeniusCalendarData>("s.getSignupInfo", {
+            urlid: base.urlid,
+            listid: base.id,
+            includeAdvanceDetails: true,
+            forSignUpView: true,
+            view: "calendar",
+            calendarMonth,
+          }).catch(() => null)
+        )
+      );
 
-    const eventMap = new Map<string, ServiceOpportunityEvent>();
+      const eventMap = new Map<string, ServiceOpportunityEvent>();
 
-    for (const calendar of calendars) {
-      if (!calendar?.slots) continue;
+      for (const calendar of calendars) {
+        if (!calendar?.slots) continue;
 
-      for (const slot of Object.values(calendar.slots)) {
-        const item = slot.items?.[0];
-        if (!item) continue;
+        for (const slot of Object.values(calendar.slots)) {
+          const item = slot.items?.[0];
+          if (!item) continue;
 
-        const startDate = new Date(slot.starttime);
-        const endDate = new Date(slot.endtime);
-        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) continue;
+          const startDate = new Date(slot.starttime);
+          const endDate = new Date(slot.endtime);
+          if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) continue;
 
-        eventMap.set(String(slot.slotid), {
-          id: String(slot.slotid),
-          title: item.item || slot.location || base.title,
-          location: slot.location || "Location TBD",
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          description: item.comment?.trim() || item.itemDescription?.trim() || "Open service opportunity.",
-          seatsTaken: Number(item.qtyTaken || 0),
-          seatsTotal: Number(item.qty || 0),
-          isFull: Number(item.qtyTaken || 0) >= Number(item.qty || 0) && !item.waitlist,
-          signupUrl: `https://www.signupgenius.com/go/${base.urlid}#/`,
-        });
+          eventMap.set(String(slot.slotid), {
+            id: String(slot.slotid),
+            title: item.item || slot.location || base.title,
+            location: slot.location || "Location TBD",
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            description: item.comment?.trim() || item.itemDescription?.trim() || "Open service opportunity.",
+            seatsTaken: Number(item.qtyTaken || 0),
+            seatsTotal: Number(item.qty || 0),
+            isFull: Number(item.qtyTaken || 0) >= Number(item.qty || 0) && !item.waitlist,
+            signupUrl: `https://www.signupgenius.com/go/${base.urlid}#/`,
+          });
+        }
       }
-    }
 
-    return Array.from(eventMap.values()).sort((left, right) => left.startDate.localeCompare(right.startDate));
-  } catch (error) {
-    console.error("[MissionMinistry] Failed to load SignUpGenius service opportunities:", error);
-    return [];
-  }
+      return Array.from(eventMap.values()).sort((left, right) => left.startDate.localeCompare(right.startDate));
+    } catch (error) {
+      console.error("[MissionMinistry] Failed to load SignUpGenius service opportunities:", error);
+      return [];
+    }
+  });
 }
