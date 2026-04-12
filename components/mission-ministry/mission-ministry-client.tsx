@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { CalendarDays, Heart, MapPin, Sparkles, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Heart, MapPin, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -196,6 +196,7 @@ export function MissionMinistryClient({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [tab, setTab] = useState<PageTab>("overview");
+  const serviceRailRef = useRef<HTMLDivElement | null>(null);
 
   const groupedPrograms = useMemo(
     () =>
@@ -209,6 +210,16 @@ export function MissionMinistryClient({
   const featuredPrograms = programs.filter((program) => program.isFeatured);
   const kairosPrograms = groupedPrograms.find((section) => section.type === "KAIROS")?.items ?? [];
   const retreatPrograms = groupedPrograms.find((section) => section.type === "RETREAT")?.items ?? [];
+
+  const scrollServiceRail = (direction: "left" | "right") => {
+    const rail = serviceRailRef.current;
+    if (!rail) return;
+
+    rail.scrollBy({
+      left: direction === "right" ? 340 : -340,
+      behavior: "smooth",
+    });
+  };
 
   const handleSignup = (programId: string) => {
     startTransition(async () => {
@@ -515,30 +526,52 @@ export function MissionMinistryClient({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/50 dark:text-white/50">Live Service Calendar</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-foreground">Upcoming service opportunities pulled from SignUpGenius</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground/72 dark:text-white/72">
-                  A brighter, roomier view of what is coming up next. The cards auto-glide on larger screens and still scroll manually on phones.
+                  A calmer, interactive view of what is coming up next. Swipe, drag, or use the arrows to move through the opportunities at your own pace.
                 </p>
               </div>
-              <Link
-                href={SERVICE_SIGNUP_GENIUS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Open live signup
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollServiceRail("left")}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background/80 text-foreground transition-colors hover:bg-background"
+                  aria-label="Scroll service opportunities left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollServiceRail("right")}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background/80 text-foreground transition-colors hover:bg-background"
+                  aria-label="Scroll service opportunities right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <Link
+                  href={SERVICE_SIGNUP_GENIUS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-2xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  Open live signup
+                </Link>
+              </div>
             </div>
 
-            <div className="mt-6 overflow-hidden">
+            <div
+              ref={serviceRailRef}
+              className="mt-6 overflow-x-auto pb-3 [scrollbar-width:thin] snap-x snap-mandatory"
+            >
               {serviceEvents.length > 0 ? (
                 <motion.div
                   className="flex w-max gap-4 pr-4"
-                  animate={{ x: ["0%", "-50%"] }}
-                  transition={{ duration: 36, ease: "linear", repeat: Infinity }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
                 >
-                  {[...serviceEvents, ...serviceEvents].map((event, index) => (
+                  {serviceEvents.map((event) => (
                     <article
-                      key={`${event.id}-${index}`}
-                      className="w-[min(84vw,360px)] rounded-[30px] border border-[rgba(122,87,31,0.16)] bg-[linear-gradient(145deg,rgba(255,245,229,0.95),rgba(249,227,192,0.72),rgba(218,229,255,0.66))] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(43,23,31,0.96),rgba(59,37,21,0.92),rgba(20,30,55,0.92))]"
+                      key={event.id}
+                      className="w-[min(84vw,360px)] snap-start rounded-[30px] border border-[rgba(122,87,31,0.16)] bg-[linear-gradient(145deg,rgba(255,245,229,0.95),rgba(249,227,192,0.72),rgba(218,229,255,0.66))] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(43,23,31,0.96),rgba(59,37,21,0.92),rgba(20,30,55,0.92))]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
