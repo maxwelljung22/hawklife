@@ -46,6 +46,28 @@ export function getRequestIp(request: Request) {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
+function getTrustedOrigins(request: Request) {
+  const origins = new Set<string>();
+
+  try {
+    origins.add(new URL(request.url).origin);
+  } catch {}
+
+  const configuredOrigin = process.env.NEXTAUTH_URL?.trim();
+  if (configuredOrigin) origins.add(configuredOrigin);
+
+  if (configuredOrigin && configuredOrigin.startsWith("https://")) {
+    const host = configuredOrigin.replace(/^https:\/\//, "");
+    if (host.startsWith("www.")) {
+      origins.add(`https://${host.slice(4)}`);
+    } else {
+      origins.add(`https://www.${host}`);
+    }
+  }
+
+  return origins;
+}
+
 export function applySecurityHeaders(response: NextResponse) {
   const csp = [
     "default-src 'self'",
@@ -136,15 +158,20 @@ export function applyNoStore(response: NextResponse) {
 
 export function isTrustedOriginRequest(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+  const trustedOrigins = getTrustedOrigins(request);
 
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const host = forwardedHost || request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const appOrigin = host ? `${proto}://${host}` : null;
-  const configuredOrigin = process.env.NEXTAUTH_URL?.trim() || null;
+  if (origin) {
+    return trustedOrigins.has(origin);
+  }
 
-  return origin === appOrigin || origin === configuredOrigin;
+  const referer = request.headers.get("referer");
+  if (!referer) return true;
+
+  try {
+    return trustedOrigins.has(new URL(referer).origin);
+  } catch {
+    return false;
+  }
 }
 
 export function rejectUntrustedOrigin(request: Request) {
@@ -157,6 +184,17 @@ export function rejectUntrustedOrigin(request: Request) {
 
 export function withStandardApiHeaders(response: NextResponse) {
   return applySecurityHeaders(applyNoStore(response));
+}
+
+export function rejectCrossSiteRequest(request: Request) {
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  if (!secFetchSite || ["same-origin", "same-site", "none"].includes(secFetchSite)) {
+    return null;
+  }
+
+  return applySecurityHeaders(
+    applyNoStore(NextResponse.json({ error: "Cross-site request blocked" }, { status: 403 }))
+  );
 }
 
 export function sanitizeAttachmentFilename(value: string, fallback: string) {

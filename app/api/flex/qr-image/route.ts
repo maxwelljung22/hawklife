@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import {
   checkRateLimit,
   getRequestIp,
+  rejectCrossSiteRequest,
   withRateLimitHeaders,
   withStandardApiHeaders,
 } from "@/lib/security";
@@ -18,6 +19,9 @@ function parseQrSize(value: string | null) {
 }
 
 export async function GET(request: Request) {
+  const crossSiteError = rejectCrossSiteRequest(request);
+  if (crossSiteError) return crossSiteError;
+
   const session = await auth();
   if (!session?.user) {
     return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));

@@ -7,11 +7,15 @@ import {
   rejectUntrustedOrigin,
   checkRateLimit,
   getRequestIp,
+  rejectCrossSiteRequest,
   withStandardApiHeaders,
   withRateLimitHeaders,
 } from "@/lib/security";
 
 export async function GET(req: NextRequest) {
+  const crossSiteError = rejectCrossSiteRequest(req);
+  if (crossSiteError) return crossSiteError;
+
   const session = await getSession();
   if (!session?.user) {
     return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
@@ -57,6 +61,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const crossSiteError = rejectCrossSiteRequest(req);
+  if (crossSiteError) return crossSiteError;
+
   const originError = rejectUntrustedOrigin(req);
   if (originError) return originError;
 

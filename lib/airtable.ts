@@ -344,7 +344,7 @@ async function writeCache(records: NhsRecord[]): Promise<void> {
           requiredHours: r.requiredHours,
           activities:    r.activities as any,
           lastSyncAt:    r.lastSyncAt,
-          rawData:       r as any,
+          rawData:       null,
         },
         create: {
           airtableId:    r.id,
@@ -355,7 +355,7 @@ async function writeCache(records: NhsRecord[]): Promise<void> {
           requiredHours: r.requiredHours,
           activities:    r.activities as any,
           lastSyncAt:    r.lastSyncAt,
-          rawData:       r as any,
+          rawData:       null,
         },
       })
     )

@@ -7,11 +7,15 @@ import { isPrismaMissingColumnError } from "@/lib/prisma-errors";
 import {
   checkRateLimit,
   getRequestIp,
+  rejectCrossSiteRequest,
   withStandardApiHeaders,
   withRateLimitHeaders,
 } from "@/lib/security";
 
 export async function GET(request: Request) {
+  const crossSiteError = rejectCrossSiteRequest(request);
+  if (crossSiteError) return crossSiteError;
+
   const session = await auth();
   if (!session?.user) {
     return withStandardApiHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
