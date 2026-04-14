@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Save, X } from "lucide-react";
 import Link from "next/link";
 import { createClub, updateClub } from "@/app/(app)/clubs/actions";
 import { useToast } from "@/hooks/use-toast";
+import { buildMeetingDayValue, CLUB_WEEKDAY_OPTIONS, parseMeetingDays, type WeekdayOption } from "@/lib/club-schedule";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ["STEM", "HUMANITIES", "ARTS", "BUSINESS", "SERVICE", "SPORTS", "FAITH", "OTHER"];
@@ -22,8 +23,6 @@ const GRADIENT_PRESETS = [
   { from: "#6a1c1c", to: "#3d0f0f", label: "Burgundy" },
   { from: "#1b4332", to: "#0a2218", label: "Emerald" },
 ] as const;
-
-const MEETING_DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
 
 type ClubEditorValues = {
   id?: string;
@@ -55,10 +54,32 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState(initialValues);
   const [newTag, setNewTag] = useState("");
-  const meetingDayPreset = MEETING_DAY_OPTIONS.includes(form.meetingDay as (typeof MEETING_DAY_OPTIONS)[number]) ? form.meetingDay : "Other";
+  const meetingSchedule = parseMeetingDays(form.meetingDay);
+  const meetingDayPreset = meetingSchedule.isCustom ? "Other" : "Weekdays";
 
   const set = (k: keyof ClubEditorValues) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const toggleMeetingDay = (day: WeekdayOption) => {
+    setForm((current) => {
+      const parsed = parseMeetingDays(current.meetingDay);
+      const nextDays = parsed.selectedDays.includes(day)
+        ? parsed.selectedDays.filter((value) => value !== day)
+        : [...parsed.selectedDays, day];
+
+      return {
+        ...current,
+        meetingDay: buildMeetingDayValue(nextDays),
+      };
+    });
+  };
+
+  const enableCustomMeetingDay = () => {
+    setForm((current) => ({
+      ...current,
+      meetingDay: meetingSchedule.isCustom ? current.meetingDay : "",
+    }));
+  };
 
   const addTag = () => {
     const t = newTag.trim().toLowerCase();
@@ -212,17 +233,17 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
             <div className="rounded-[24px] border border-border bg-muted/40 p-4">
               <p className="text-[13px] font-semibold text-foreground">Meeting Schedule</p>
               <p className="mt-2 text-[12px] leading-6 text-muted-foreground">
-                Choose the main weekday for this club. If the schedule rotates or changes, use the custom option and describe it clearly for students.
+                Pick every weekday this club regularly meets. If the cadence rotates or changes, switch to a custom schedule and describe it clearly for students.
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                {MEETING_DAY_OPTIONS.map((day) => (
+                {CLUB_WEEKDAY_OPTIONS.map((day) => (
                   <button
                     key={day}
                     type="button"
-                    onClick={() => setForm((current) => ({ ...current, meetingDay: day }))}
+                    onClick={() => toggleMeetingDay(day)}
                     className={cn(
                       "rounded-xl border px-3 py-3 text-[12.5px] font-medium transition-colors",
-                      meetingDayPreset === day
+                      meetingSchedule.selectedDays.includes(day)
                         ? "border-blue-500 bg-blue-600 text-white"
                         : "border-border bg-card text-muted-foreground hover:bg-muted"
                     )}
@@ -232,7 +253,7 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
                 ))}
                 <button
                   type="button"
-                  onClick={() => setForm((current) => ({ ...current, meetingDay: current.meetingDay && meetingDayPreset === "Other" ? current.meetingDay : "" }))}
+                  onClick={enableCustomMeetingDay}
                   className={cn(
                     "rounded-xl border px-3 py-3 text-[12.5px] font-medium transition-colors",
                     meetingDayPreset === "Other"
@@ -246,11 +267,11 @@ export function ClubEditorClient({ mode, initialValues }: ClubEditorClientProps)
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label={meetingDayPreset === "Other" ? "Custom day / cadence" : "Selected day"}>
+              <Field label={meetingDayPreset === "Other" ? "Custom day / cadence" : "Selected days"}>
                 <input
                   value={form.meetingDay}
                   onChange={set("meetingDay")}
-                  placeholder={meetingDayPreset === "Other" ? "e.g. Tuesdays & Thursdays, rotating by project" : "Selected weekday"}
+                  placeholder={meetingDayPreset === "Other" ? "e.g. Tuesdays & Thursdays, rotating by project" : "Selected weekdays"}
                   className={inputCls}
                 />
               </Field>

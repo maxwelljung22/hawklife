@@ -189,10 +189,12 @@ export function ClubsClient({ clubs: initialClubs, role }: Props) {
                               club.emoji
                             )}
                           </div>
-                          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/78">{club.category}</p>
+                          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgba(255,248,240,0.96)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:text-white/82">
+                            {club.category}
+                          </p>
                         </div>
                         {club.requiresApp ? (
-                          <span className="rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/84">
+                          <span className="rounded-full border border-[rgba(255,255,255,0.45)] bg-[rgba(255,248,240,0.92)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.12)] dark:border-white/20 dark:bg-white/12 dark:text-white/84 dark:shadow-none">
                             Apply
                           </span>
                         ) : null}

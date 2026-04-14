@@ -30,6 +30,7 @@ import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import type { MembershipRole, UserRole } from "@prisma/client";
+import { CLUB_WEEKDAY_OPTIONS, parseMeetingDays } from "@/lib/club-schedule";
 import { getClubLeadershipRoleLabel } from "@/lib/roles";
 
 const TABS = [
@@ -61,6 +62,7 @@ export function ClubDetailClient({ club, membership, isLeader, userId, userRole,
   const isAdmin = userRole === "ADMIN";
   const canManage = isAdmin || isLeader;
   const canAccessWorkspace = joined || canManage;
+  const meetingSchedule = parseMeetingDays(club.meetingDay);
 
   const handleToggle = () => {
     const next = !joined;
@@ -218,9 +220,28 @@ function OverviewTab({ club, memberCount }: { club: any; memberCount: number }) 
           {club.meetingDay || club.meetingTime || club.meetingRoom ? (
             <div className="space-y-2">
               {club.meetingDay && (
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-bold uppercase tracking-[.07em] text-crimson w-14">Day</span>
-                  <span className="text-[13.5px] text-foreground">{club.meetingDay}</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                  <span className="w-14 text-[11px] font-bold uppercase tracking-[.07em] text-crimson">Day</span>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {CLUB_WEEKDAY_OPTIONS.map((day) => (
+                        <span
+                          key={day}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-[12px] font-medium",
+                            meetingSchedule.selectedDays.includes(day)
+                              ? "border-blue-500 bg-blue-600 text-white"
+                              : "border-border bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {day}
+                        </span>
+                      ))}
+                    </div>
+                    {meetingSchedule.isCustom ? (
+                      <span className="text-[13.5px] text-foreground">{club.meetingDay}</span>
+                    ) : null}
+                  </div>
                 </div>
               )}
               {club.meetingTime && (
