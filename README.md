@@ -77,7 +77,9 @@ Required variables:
 - `NEXTAUTH_URL`: deployment URL, typically `https://hawklife.org`
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `AIRTABLE_API_KEY`: Airtable API token for NHS sync
+- `AIRTABLE_PUBLIC_CSV_URL`: published Airtable CSV/share link for NHS sync without a personal token
+- `AIRTABLE_SHARE_ID`: optional public Airtable share id fallback
+- `AIRTABLE_API_KEY`: optional Airtable API token fallback for NHS sync
 - `AIRTABLE_BASE_ID`: Airtable base ID
 - `AIRTABLE_TABLE`: Airtable table name
 

@@ -1,6 +1,6 @@
 /**
  * lib/airtable.ts
- * NHS Hours integration via Airtable API with PostgreSQL cache.
+ * NHS Hours integration via Airtable API or public shared view/CSV with PostgreSQL cache.
  * Cache TTL: 5 minutes. Matches students by email, then name fallback.
  */
 import { cache } from "react";
@@ -9,6 +9,8 @@ import { prisma } from "./prisma";
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID ?? "appJJ7OQC18yfQF5V";
 const AIRTABLE_TABLE   = process.env.AIRTABLE_TABLE   ?? "tblUPK4WTWSmKYouy";
 const AIRTABLE_KEY     = process.env.AIRTABLE_API_KEY;
+const AIRTABLE_SHARE_ID = process.env.AIRTABLE_SHARE_ID ?? "shrtapfD0KBciqa6E";
+const AIRTABLE_PUBLIC_CSV_URL = process.env.AIRTABLE_PUBLIC_CSV_URL?.trim() || null;
 const CACHE_TTL_MS     = 5 * 60 * 1000; // 5 minutes
 
 const REQUIRED_HOURS: Record<number, number> = {
@@ -57,6 +59,10 @@ function computeProgress(total: number, required: number): number {
 
 function hasUsableAirtableKey(key?: string) {
   return Boolean(key && !key.includes("xxxxxxxx"));
+}
+
+function hasUsablePublicCsvUrl(url?: string | null) {
+  return Boolean(url && /^https?:\/\//i.test(url));
 }
 
 function getFirstField(fields: Record<string, any>, keys: readonly string[]) {
@@ -149,78 +155,154 @@ function resolveMatchedUser(
 }
 
 async function fetchFromAirtable(): Promise<NhsRecord[]> {
-  if (!hasUsableAirtableKey(AIRTABLE_KEY)) {
-    console.warn("[NHS] AIRTABLE_API_KEY not set — skipping fetch");
-    return [];
-  }
-
   const records: NhsRecord[] = [];
   const { byEmail, byName } = await getUserMatchMaps();
-  let offset: string | undefined;
+  const pushRecord = (recordId: string, fields: Record<string, any>) => {
+    const airtableName = String(getFirstField(fields, NAME_FIELD_CANDIDATES) ?? "").trim();
+    const airtableEmail = normalizeEmail(getFirstField(fields, EMAIL_FIELD_CANDIDATES));
+    const airtableGrade = parseGradeValue(getFirstField(fields, GRADE_FIELD_CANDIDATES));
+    const totalHours = parseFloat(String(getFirstField(fields, HOURS_FIELD_CANDIDATES) ?? "0")) || 0;
+    const matchedUser = resolveMatchedUser(byEmail, byName, airtableEmail, airtableName, airtableGrade);
+    const grade = airtableGrade ?? matchedUser?.grade ?? null;
+    const requiredHours = grade ? (REQUIRED_HOURS[grade] ?? 0) : 0;
+    const name = matchedUser?.name?.trim() || airtableName;
+    const email = normalizeEmail(matchedUser?.email) ?? airtableEmail;
 
-  do {
-    const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`);
-    url.searchParams.set("pageSize", "100");
-    if (offset) url.searchParams.set("offset", offset);
+    if (!name) return;
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${AIRTABLE_KEY}` },
-      next: { revalidate: 0 },
-      signal: AbortSignal.timeout(12_000),
+    records.push({
+      id:            recordId,
+      studentName:   name,
+      studentEmail:  email,
+      grade,
+      totalHours,
+      requiredHours,
+      status:        computeStatus(totalHours, requiredHours),
+      progressPct:   computeProgress(totalHours, requiredHours),
+      activities:    [],
+      lastSyncAt:    new Date(),
     });
+  };
 
-    if (!res.ok) {
-      const text = await res.text();
-      if (res.status === 401 || res.status === 403) {
-        console.warn(`[NHS] Airtable auth failed (${res.status}). Falling back to cached NHS data.`);
-        return [];
+  if (hasUsableAirtableKey(AIRTABLE_KEY)) {
+    let offset: string | undefined;
+
+    do {
+      const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`);
+      url.searchParams.set("pageSize", "100");
+      if (offset) url.searchParams.set("offset", offset);
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${AIRTABLE_KEY}` },
+        next: { revalidate: 0 },
+        signal: AbortSignal.timeout(12_000),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        if (res.status === 401 || res.status === 403) {
+          console.warn(`[NHS] Airtable auth failed (${res.status}). Falling back to public share/cached NHS data.`);
+          break;
+        }
+        throw new Error(`Airtable error ${res.status}: ${text}`);
       }
-      throw new Error(`Airtable error ${res.status}: ${text}`);
+
+      const data = await res.json();
+      offset = data.offset;
+
+      for (const rec of data.records ?? []) {
+        pushRecord(rec.id, rec.fields as Record<string, any>);
+      }
+    } while (offset);
+
+    if (records.length > 0) return records;
+  }
+
+  const publicCsvCandidates = [
+    AIRTABLE_PUBLIC_CSV_URL,
+    `https://airtable.com/v0.3/view/${AIRTABLE_SHARE_ID}/downloadCsv?blocks=hide`,
+    `https://airtable.com/${AIRTABLE_SHARE_ID}/${AIRTABLE_TABLE}?blocks=hide&format=csv`,
+  ].filter(Boolean) as string[];
+
+  for (const url of publicCsvCandidates) {
+    try {
+      const response = await fetch(url, {
+        next: { revalidate: 0 },
+        signal: AbortSignal.timeout(12_000),
+      });
+
+      if (!response.ok) continue;
+      const csv = await response.text();
+      if (!csv.includes(",")) continue;
+
+      const rows = parseCsv(csv);
+      for (const row of rows) {
+        const recordId = String(row.id ?? row.ID ?? row.RecordID ?? `${row["Student Name"] ?? row["Name"] ?? crypto.randomUUID()}`);
+        pushRecord(recordId, row);
+      }
+
+      if (records.length > 0) return records;
+    } catch (error) {
+      console.warn("[NHS] Public Airtable CSV fetch failed:", error);
+    }
+  }
+
+  if (!hasUsableAirtableKey(AIRTABLE_KEY) && !hasUsablePublicCsvUrl(AIRTABLE_PUBLIC_CSV_URL)) {
+    console.warn("[NHS] No Airtable PAT or public CSV/share source configured.");
+  }
+
+  return [];
+}
+
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+      continue;
     }
 
-    const data = await res.json();
-    offset = data.offset;
-
-    for (const rec of data.records ?? []) {
-      const f = rec.fields as Record<string, any>;
-      const airtableName = String(getFirstField(f, NAME_FIELD_CANDIDATES) ?? "").trim();
-      const airtableEmail = normalizeEmail(getFirstField(f, EMAIL_FIELD_CANDIDATES));
-      const airtableGrade = parseGradeValue(getFirstField(f, GRADE_FIELD_CANDIDATES));
-      const totalHours = parseFloat(String(getFirstField(f, HOURS_FIELD_CANDIDATES) ?? "0")) || 0;
-      const matchedUser = resolveMatchedUser(byEmail, byName, airtableEmail, airtableName, airtableGrade);
-      const grade = airtableGrade ?? matchedUser?.grade ?? null;
-      const requiredHours = grade ? (REQUIRED_HOURS[grade] ?? 0) : 0;
-      const name = matchedUser?.name?.trim() || airtableName;
-      const email = normalizeEmail(matchedUser?.email) ?? airtableEmail;
-
-      let activities: NhsActivity[] = [];
-      if (Array.isArray(f["Activities"])) {
-        activities = f["Activities"].map((a: any) => ({
-          name:     String(a["Activity Name"] ?? a["Name"] ?? "Activity"),
-          hours:    parseFloat(String(a["Hours"] ?? "0")) || 0,
-          date:     String(a["Date"] ?? ""),
-          category: String(a["Category"] ?? "Service"),
-        }));
-      }
-
-      if (name) {
-        records.push({
-          id:            rec.id,
-          studentName:   name,
-          studentEmail:  email,
-          grade,
-          totalHours,
-          requiredHours,
-          status:        computeStatus(totalHours, requiredHours),
-          progressPct:   computeProgress(totalHours, requiredHours),
-          activities,
-          lastSyncAt:    new Date(),
-        });
-      }
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
     }
-  } while (offset);
 
-  return records;
+    if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsv(csv: string) {
+  const lines = csv
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0);
+
+  if (lines.length < 2) return [];
+
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    return headers.reduce<Record<string, string>>((row, header, index) => {
+      row[header] = values[index] ?? "";
+      return row;
+    }, {});
+  });
 }
 
 async function isCacheStale(): Promise<boolean> {
@@ -348,7 +430,7 @@ export async function syncNhsNow(): Promise<{ synced: number; error?: string }> 
     if (records.length === 0) {
       return {
         synced: 0,
-        error: "Airtable credentials are missing or invalid. Update AIRTABLE_API_KEY to enable live sync.",
+        error: "No Airtable sync source is available. Configure a public Airtable share/CSV link or a valid Airtable token.",
       };
     }
     await writeCache(records);
