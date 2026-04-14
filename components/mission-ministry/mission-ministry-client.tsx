@@ -163,23 +163,26 @@ const INSET_PANEL =
   "border border-[rgba(122,87,31,0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.78),rgba(248,236,220,0.68))] dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(31,24,43,0.9),rgba(17,21,37,0.86))]";
 const SOFT_BADGE =
   "border border-[rgba(255,255,255,0.45)] bg-[rgba(255,250,243,0.78)] text-slate-900 dark:border-white/10 dark:bg-[rgba(24,28,45,0.88)] dark:text-white";
+const SCHOOL_TIME_ZONE = "America/New_York";
 
 function formatDateRange(startDate: string, endDate: string) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} - ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", timeZone: SCHOOL_TIME_ZONE })} · ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: SCHOOL_TIME_ZONE })} - ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: SCHOOL_TIME_ZONE })}`;
 }
 
 function formatEventCardDate(startDate: string, endDate: string) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const sameDay = start.toDateString() === end.toDateString();
+  const startDay = start.toLocaleDateString("en-US", { timeZone: SCHOOL_TIME_ZONE });
+  const endDay = end.toLocaleDateString("en-US", { timeZone: SCHOOL_TIME_ZONE });
+  const sameDay = startDay === endDay;
 
   if (sameDay) {
-    return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} - ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+    return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", timeZone: SCHOOL_TIME_ZONE })} · ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: SCHOOL_TIME_ZONE })} - ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: SCHOOL_TIME_ZONE })}`;
   }
 
-  return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} - ${end.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}`;
+  return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", timeZone: SCHOOL_TIME_ZONE })} - ${end.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", timeZone: SCHOOL_TIME_ZONE })}`;
 }
 
 export function MissionMinistryClient({

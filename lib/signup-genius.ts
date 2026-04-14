@@ -3,7 +3,8 @@ import { remember } from "@/lib/server-cache";
 const SIGNUP_GENIUS_API_URL = "https://www.signupgenius.com/sugboxapi.cfm";
 const SERVICE_OPPORTUNITY_URL_ID = "10C0F44AAA62AA1FFC07-service";
 const SIGNUP_GENIUS_TIMEOUT_MS = 8_000;
-const SERVICE_EVENT_CACHE_TTL_MS = 5 * 60_000;
+const SERVICE_EVENT_CACHE_TTL_MS = 60_000;
+const SCHOOL_TIME_ZONE = "America/New_York";
 
 type SignupGeniusEnvelope<T> = {
   MESSAGE?: string[];
@@ -61,6 +62,77 @@ export type ServiceOpportunityEvent = {
   isFull: boolean;
   signupUrl: string;
 };
+
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second")
+  );
+
+  return asUtc - date.getTime();
+}
+
+function parseSignupGeniusDateTime(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(normalized)) {
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const match = normalized.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (!match) {
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  let timestamp = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+
+  for (let index = 0; index < 3; index += 1) {
+    const offset = getTimeZoneOffsetMs(new Date(timestamp), SCHOOL_TIME_ZONE);
+    const next = Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second)
+    ) - offset;
+
+    if (next === timestamp) break;
+    timestamp = next;
+  }
+
+  return new Date(timestamp);
+}
 
 function buildMonthKey(date: Date) {
   return `${date.getMonth() + 1}-${date.getFullYear()}`;
@@ -155,9 +227,9 @@ export async function fetchServiceOpportunityEvents() {
           const item = slot.items?.[0];
           if (!item) continue;
 
-          const startDate = new Date(slot.starttime);
-          const endDate = new Date(slot.endtime);
-          if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) continue;
+          const startDate = parseSignupGeniusDateTime(slot.starttime);
+          const endDate = parseSignupGeniusDateTime(slot.endtime);
+          if (!startDate || !endDate || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) continue;
 
           eventMap.set(String(slot.slotid), {
             id: String(slot.slotid),
