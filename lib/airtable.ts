@@ -18,6 +18,11 @@ const REQUIRED_HOURS: Record<number, number> = {
   12: 25,
 };
 
+const NAME_FIELD_CANDIDATES = ["Student Name", "Name", "Full Name"] as const;
+const EMAIL_FIELD_CANDIDATES = ["Email", "Student Email", "School Email"] as const;
+const GRADE_FIELD_CANDIDATES = ["Grade", "Class", "Year"] as const;
+const HOURS_FIELD_CANDIDATES = ["Total Hours", "Hours", "Approved Hours"] as const;
+
 export interface NhsRecord {
   id:            string;
   studentName:   string;
@@ -54,6 +59,95 @@ function hasUsableAirtableKey(key?: string) {
   return Boolean(key && !key.includes("xxxxxxxx"));
 }
 
+function getFirstField(fields: Record<string, any>, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = fields[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function normalizeEmail(value: string | null | undefined) {
+  return value ? value.toLowerCase().trim() : null;
+}
+
+function normalizeName(value: string | null | undefined) {
+  return value
+    ? value
+        .toLowerCase()
+        .replace(/[.'’,-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+    : "";
+}
+
+function parseGradeValue(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const parsed = parseInt(String(value), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function getUserMatchMaps() {
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { email: { not: null } },
+        { name: { not: null } },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      grade: true,
+      graduationYear: true,
+    },
+  });
+
+  const byEmail = new Map<string, (typeof users)[number]>();
+  const byName = new Map<string, (typeof users)[number][]>();
+
+  for (const user of users) {
+    const email = normalizeEmail(user.email);
+    const name = normalizeName(user.name);
+
+    if (email) byEmail.set(email, user);
+    if (name) {
+      const existing = byName.get(name) ?? [];
+      existing.push(user);
+      byName.set(name, existing);
+    }
+  }
+
+  return { byEmail, byName };
+}
+
+function resolveMatchedUser(
+  byEmail: Map<string, any>,
+  byName: Map<string, any[]>,
+  email: string | null,
+  name: string,
+  grade: number | null
+) {
+  if (email && byEmail.has(email)) {
+    return byEmail.get(email) ?? null;
+  }
+
+  const normalizedName = normalizeName(name);
+  if (!normalizedName) return null;
+
+  const candidates = byName.get(normalizedName) ?? [];
+  if (candidates.length === 1) return candidates[0];
+  if (candidates.length > 1 && grade !== null) {
+    return candidates.find((candidate) => candidate.grade === grade) ?? candidates[0];
+  }
+
+  return null;
+}
+
 async function fetchFromAirtable(): Promise<NhsRecord[]> {
   if (!hasUsableAirtableKey(AIRTABLE_KEY)) {
     console.warn("[NHS] AIRTABLE_API_KEY not set — skipping fetch");
@@ -61,6 +155,7 @@ async function fetchFromAirtable(): Promise<NhsRecord[]> {
   }
 
   const records: NhsRecord[] = [];
+  const { byEmail, byName } = await getUserMatchMaps();
   let offset: string | undefined;
 
   do {
@@ -88,11 +183,15 @@ async function fetchFromAirtable(): Promise<NhsRecord[]> {
 
     for (const rec of data.records ?? []) {
       const f = rec.fields as Record<string, any>;
-      const name  = String(f["Student Name"] ?? f["Name"] ?? "").trim();
-      const email = f["Email"] ? String(f["Email"]).toLowerCase().trim() : null;
-      const grade = f["Grade"] ? parseInt(String(f["Grade"]), 10) : null;
-      const totalHours    = parseFloat(String(f["Total Hours"] ?? f["Hours"] ?? "0")) || 0;
+      const airtableName = String(getFirstField(f, NAME_FIELD_CANDIDATES) ?? "").trim();
+      const airtableEmail = normalizeEmail(getFirstField(f, EMAIL_FIELD_CANDIDATES));
+      const airtableGrade = parseGradeValue(getFirstField(f, GRADE_FIELD_CANDIDATES));
+      const totalHours = parseFloat(String(getFirstField(f, HOURS_FIELD_CANDIDATES) ?? "0")) || 0;
+      const matchedUser = resolveMatchedUser(byEmail, byName, airtableEmail, airtableName, airtableGrade);
+      const grade = airtableGrade ?? matchedUser?.grade ?? null;
       const requiredHours = grade ? (REQUIRED_HOURS[grade] ?? 0) : 0;
+      const name = matchedUser?.name?.trim() || airtableName;
+      const email = normalizeEmail(matchedUser?.email) ?? airtableEmail;
 
       let activities: NhsActivity[] = [];
       if (Array.isArray(f["Activities"])) {
@@ -228,11 +327,15 @@ export async function getNhsRecordForUser(email: string, name?: string | null): 
   if (exactEmailMatch) return cacheToRecord(exactEmailMatch);
 
   const all = await getAllNhsRecords();
-  let match: NhsRecord | undefined;
+  const localPart = emailLower.split("@")[0];
+  let match: NhsRecord | undefined = all.find((r) => {
+    const recordEmail = normalizeEmail(r.studentEmail);
+    return recordEmail ? recordEmail.split("@")[0] === localPart : false;
+  });
   if (!match && name) {
-    const norm = name.toLowerCase().replace(/\s+/g, " ").trim();
+    const norm = normalizeName(name);
     match = all.find((r) => {
-      const rn = r.studentName.toLowerCase().replace(/\s+/g, " ").trim();
+      const rn = normalizeName(r.studentName);
       return rn === norm || rn.includes(norm) || norm.includes(rn);
     });
   }
