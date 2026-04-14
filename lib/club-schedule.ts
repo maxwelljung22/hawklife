@@ -19,8 +19,6 @@ export function parseMeetingDays(value: string | null | undefined) {
   const leftover = normalized
     .replace(/\s*&\s*/g, " & ")
     .trim();
-
-  const recognizedPattern = selectedDays.join(" & ");
   const isExactWeekdayList = weekdayMatches && buildMeetingDayValue(selectedDays) === normalized;
 
   return {
@@ -40,4 +38,3 @@ export function buildMeetingDayValue(days: readonly WeekdayOption[], customLabel
   if (uniqueDays.length === 2) return `${uniqueDays[0]} & ${uniqueDays[1]}`;
   return uniqueDays.join(" / ");
 }
-

@@ -62,7 +62,6 @@ export function ClubDetailClient({ club, membership, isLeader, userId, userRole,
   const isAdmin = userRole === "ADMIN";
   const canManage = isAdmin || isLeader;
   const canAccessWorkspace = joined || canManage;
-  const meetingSchedule = parseMeetingDays(club.meetingDay);
 
   const handleToggle = () => {
     const next = !joined;
@@ -185,6 +184,7 @@ function OverviewTab({ club, memberCount }: { club: any; memberCount: number }) 
   const leaders = club.memberships.filter((m: any) =>
     ["PRESIDENT", "OFFICER", "FACULTY_ADVISOR"].includes(m.role)
   );
+  const meetingSchedule = parseMeetingDays(club.meetingDay);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
