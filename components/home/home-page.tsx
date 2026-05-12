@@ -47,7 +47,11 @@ export function HomePage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: shouldReduce ? 0 : 0.3 } }}
-      className="auth-page-bg flex min-h-screen items-center justify-center px-4 py-6"
+      className="flex min-h-screen items-center justify-center px-4 py-6"
+      style={{
+        background:
+          "radial-gradient(circle at top, rgba(98,36,43,0.18), transparent 32%), linear-gradient(180deg, #22191d 0%, #21191c 100%)",
+      }}
     >
       <AuthCard state={signInState} errorMessage={errorMessage} onSignIn={handleSignIn} />
     </motion.div>
